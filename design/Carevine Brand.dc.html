@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@600&family=Manrope:wght@500;600;700&family=Nunito:wght@800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.95 0.006 95);-webkit-font-smoothing:antialiased}
+a{color:oklch(0.36 0.065 155);text-decoration:underline;text-underline-offset:3px}
+a:hover{color:oklch(0.5 0.1 150)}
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="mk-a" viewBox="0 0 64 64">
+      <path d="M44.14 19.86 A20 20 0 1 0 44.14 48.14" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"></path>
+      <path d="M44 20 A12 12 0 0 1 44 2 A12 12 0 0 1 44 20 Z" transform="rotate(45 44 20)" style="fill:var(--leaf2)"></path>
+    </symbol>
+    <symbol id="mk-b" viewBox="0 0 64 64">
+      <path d="M32 29 A14 14 0 0 1 32 5 A14 14 0 0 1 32 29 Z" fill="currentColor"></path>
+      <path d="M32 29 A14 14 0 0 1 32 5 A14 14 0 0 1 32 29 Z" transform="rotate(180 32 32)" fill="currentColor"></path>
+      <path d="M32 29 A14 14 0 0 1 32 5 A14 14 0 0 1 32 29 Z" transform="rotate(90 32 32)" style="fill:var(--leaf2)"></path>
+      <path d="M32 29 A14 14 0 0 1 32 5 A14 14 0 0 1 32 29 Z" transform="rotate(270 32 32)" style="fill:var(--leaf2)"></path>
+    </symbol>
+    <symbol id="mk-c" viewBox="0 0 64 64">
+      <g transform="translate(0 -3)">
+        <path d="M32 58 A24 24 0 0 1 32 14 A24 24 0 0 1 32 58 Z" transform="rotate(-35 32 58)" fill="currentColor"></path>
+        <path d="M32 58 A24 24 0 0 1 32 14 A24 24 0 0 1 32 58 Z" transform="rotate(35 32 58)" style="fill:var(--leaf2)"></path>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<section id="turn-1" style="padding:96px;display:flex;flex-direction:column;gap:72px;font-family:'Manrope',sans-serif;color:oklch(0.3 0.04 155)">
+
+  <header style="display:flex;flex-direction:column;gap:12px;max-width:900px">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.5 0.04 155)">Turn 1</div>
+    <h1 style="margin:0;font-size:56px;font-weight:700;letter-spacing:-0.03em">Carevine: logo + section thumbnails</h1>
+    <p style="margin:0;font-size:20px;line-height:1.5;color:oklch(0.42 0.035 155);text-wrap:pretty">Three symbol + wordmark directions in forest, sage and cream. Selected: <a href="#1c">1c</a>. The thumbnails below use it; switch the mark, background or backdrop disc in Tweaks.</p>
+  </header>
+
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <h2 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.02em">Logo options</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+      <div id="1a" style="width:600px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;background:oklch(0.36 0.065 155);color:oklch(0.975 0.012 85);padding:4px 10px;border-radius:999px">1a</span>
+          <span style="font-size:20px;font-weight:700">Vine C</span>
+          <span style="font-size:15px;color:oklch(0.5 0.03 155)">Figtree Semibold</span>
+        </div>
+        <div style="height:240px;background:oklch(0.975 0.012 85);border-radius:16px;display:flex;align-items:center;justify-content:center">
+          <div style="display:flex;align-items:center;gap:14px">
+            <svg width="76" height="76" style="color:oklch(0.36 0.065 155);--leaf2:oklch(0.72 0.11 148)"><use href="#mk-a"></use></svg>
+            <span style="font-family:'Figtree',sans-serif;font-weight:600;font-size:56px;letter-spacing:-0.025em;color:oklch(0.36 0.065 155)">carevine</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 120px 1fr;gap:12px">
+          <div style="height:120px;background:oklch(0.34 0.065 155);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="36" height="36" style="color:oklch(0.975 0.012 85);--leaf2:oklch(0.74 0.11 148)"><use href="#mk-a"></use></svg>
+            <span style="font-family:'Figtree',sans-serif;font-weight:600;font-size:27px;letter-spacing:-0.025em;color:oklch(0.975 0.012 85)">carevine</span>
+          </div>
+          <div style="height:120px;background:oklch(0.975 0.012 85);border-radius:14px;display:flex;align-items:center;justify-content:center">
+            <div style="width:84px;height:84px;border-radius:20px;background:oklch(0.36 0.065 155);display:flex;align-items:center;justify-content:center">
+              <svg width="56" height="56" style="color:oklch(0.975 0.012 85);--leaf2:oklch(0.74 0.11 148)"><use href="#mk-a"></use></svg>
+            </div>
+          </div>
+          <div style="height:120px;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg width="22" height="22" style="color:oklch(0.36 0.065 155);--leaf2:oklch(0.72 0.11 148)"><use href="#mk-a"></use></svg>
+            <span style="font-family:'Figtree',sans-serif;font-weight:600;font-size:17px;letter-spacing:-0.02em;color:oklch(0.36 0.065 155)">carevine</span>
+          </div>
+        </div>
+        <p style="margin:0;font-size:16px;line-height:1.5;color:oklch(0.42 0.035 155);text-wrap:pretty">A C drawn as one tendril that sprouts a leaf. Says growth and continuity of care, and keeps the name's initial.</p>
+      </div>
+
+      <div id="1b" style="width:600px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;background:oklch(0.36 0.065 155);color:oklch(0.975 0.012 85);padding:4px 10px;border-radius:999px">1b</span>
+          <span style="font-size:20px;font-weight:700">Leaf Cross</span>
+          <span style="font-size:15px;color:oklch(0.5 0.03 155)">Manrope Bold</span>
+        </div>
+        <div style="height:240px;background:oklch(0.975 0.012 85);border-radius:16px;display:flex;align-items:center;justify-content:center">
+          <div style="display:flex;align-items:center;gap:16px">
+            <svg width="72" height="72" style="color:oklch(0.36 0.065 155);--leaf2:oklch(0.72 0.11 148)"><use href="#mk-b"></use></svg>
+            <span style="font-family:'Manrope',sans-serif;font-weight:700;font-size:54px;letter-spacing:-0.035em;color:oklch(0.36 0.065 155)">Carevine</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 120px 1fr;gap:12px">
+          <div style="height:120px;background:oklch(0.34 0.065 155);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:9px">
+            <svg width="34" height="34" style="color:oklch(0.975 0.012 85);--leaf2:oklch(0.74 0.11 148)"><use href="#mk-b"></use></svg>
+            <span style="font-family:'Manrope',sans-serif;font-weight:700;font-size:26px;letter-spacing:-0.035em;color:oklch(0.975 0.012 85)">Carevine</span>
+          </div>
+          <div style="height:120px;background:oklch(0.975 0.012 85);border-radius:14px;display:flex;align-items:center;justify-content:center">
+            <div style="width:84px;height:84px;border-radius:20px;background:oklch(0.36 0.065 155);display:flex;align-items:center;justify-content:center">
+              <svg width="54" height="54" style="color:oklch(0.975 0.012 85);--leaf2:oklch(0.74 0.11 148)"><use href="#mk-b"></use></svg>
+            </div>
+          </div>
+          <div style="height:120px;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg width="21" height="21" style="color:oklch(0.36 0.065 155);--leaf2:oklch(0.72 0.11 148)"><use href="#mk-b"></use></svg>
+            <span style="font-family:'Manrope',sans-serif;font-weight:700;font-size:17px;letter-spacing:-0.03em;color:oklch(0.36 0.065 155)">Carevine</span>
+          </div>
+        </div>
+        <p style="margin:0;font-size:16px;line-height:1.5;color:oklch(0.42 0.035 155);text-wrap:pretty">Four leaves make a care cross. People read it as healthcare right away, but it feels organic rather than clinical, and it holds up best at favicon size.</p>
+      </div>
+
+      <div id="1c" style="width:600px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;background:oklch(0.36 0.065 155);color:oklch(0.975 0.012 85);padding:4px 10px;border-radius:999px">1c</span>
+          <span style="font-size:20px;font-weight:700">Sprout Heart</span>
+          <span style="font-size:15px;color:oklch(0.5 0.03 155)">Nunito ExtraBold</span>
+          <span style="font-size:13px;font-weight:600;color:oklch(0.36 0.065 155);background:oklch(0.9 0.05 150);padding:3px 9px;border-radius:999px">Selected</span>
+        </div>
+        <div style="height:240px;background:oklch(0.975 0.012 85);border-radius:16px;display:flex;align-items:center;justify-content:center">
+          <div style="display:flex;align-items:center;gap:14px">
+            <svg viewBox="0 0 64 64" width="76" height="76" style="color:oklch(0.36 0.065 155);--leaf2:oklch(0.72 0.11 148)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            <span style="font-family:'Nunito',sans-serif;font-weight:800;font-size:54px;letter-spacing:-0.02em;color:oklch(0.36 0.065 155)">carevine</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 120px 1fr;gap:12px">
+          <div style="height:120px;background:oklch(0.34 0.065 155);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg viewBox="0 0 64 64" width="36" height="36" style="color:oklch(0.975 0.012 85);--leaf2:oklch(0.74 0.11 148)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            <span style="font-family:'Nunito',sans-serif;font-weight:800;font-size:26px;letter-spacing:-0.02em;color:oklch(0.975 0.012 85)">carevine</span>
+          </div>
+          <div style="height:120px;background:oklch(0.975 0.012 85);border-radius:14px;display:flex;align-items:center;justify-content:center">
+            <div style="width:84px;height:84px;border-radius:20px;background:oklch(0.36 0.065 155);display:flex;align-items:center;justify-content:center">
+              <svg viewBox="0 0 64 64" width="58" height="58" style="color:oklch(0.975 0.012 85);--leaf2:oklch(0.74 0.11 148)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+          </div>
+          <div style="height:120px;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg viewBox="0 0 64 64" width="22" height="22" style="color:oklch(0.36 0.065 155);--leaf2:oklch(0.72 0.11 148)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            <span style="font-family:'Nunito',sans-serif;font-weight:800;font-size:17px;color:oklch(0.36 0.065 155)">carevine</span>
+          </div>
+        </div>
+        <p style="margin:0;font-size:16px;line-height:1.5;color:oklch(0.42 0.035 155);text-wrap:pretty">Two leaves grow from one root into a heart. The warmest of the three, best if Carevine wants a softer, more consumer-facing feel.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
+      <h2 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.02em">Section thumbnails</h2>
+      <span style="font-size:16px;color:oklch(0.5 0.03 155)">Notion cover format · 1500×706 (fills Notion gallery cards) · graphic sits in the middle band so cover crops keep it</span>
+    </div>
+
+    <div style="--tbg:oklch(0.93 0.035 150);--tdisc:oklch(0.975 0.014 120);--tdiscop:1;--tink:oklch(0.34 0.065 155);--tleaf:oklch(0.74 0.11 148);--tpaper:oklch(0.99 0.006 90);--tfont:'Manrope',sans-serif">
+      <div style="{{ thumbTheme }}">
+        <div style="display:grid;grid-template-columns:repeat(2,750px);gap:40px 32px">
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-01" data-screen-label="Thumb 01" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <line x1="321" y1="104" x2="321" y2="252" style="stroke:var(--tink);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 12;opacity:0.5"></line>
+                <line x1="242" y1="179" x2="402" y2="179" style="stroke:var(--tink);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 12;opacity:0.5"></line>
+                <path d="M232 96 L232 262 L410 262" style="fill:none;stroke:var(--tink);stroke-width:6;stroke-linecap:round;stroke-linejoin:round"></path>
+                <circle cx="272" cy="226" r="11" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></circle>
+                <circle cx="366" cy="224" r="11" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></circle>
+                <circle cx="276" cy="138" r="11" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></circle>
+                <circle cx="370" cy="136" r="36" style="fill:none;stroke:var(--tleaf);stroke-width:5;stroke-linecap:round;stroke-dasharray:7 10"></circle>
+                <circle cx="370" cy="136" r="20" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6"></circle>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">01</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">AI Opportunity Assessment</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-02" data-screen-label="Thumb 02" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <rect x="236" y="90" width="134" height="174" rx="14" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></rect>
+                <line x1="262" y1="128" x2="344" y2="128" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <line x1="262" y1="154" x2="332" y2="154" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <line x1="262" y1="180" x2="310" y2="180" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <line x1="262" y1="206" x2="296" y2="206" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <line x1="404" y1="238" x2="436" y2="270" style="stroke:var(--tink);stroke-width:14;stroke-linecap:round"></line>
+                <circle cx="372" cy="206" r="44" style="fill:var(--tleaf);fill-opacity:0.6;stroke:var(--tink);stroke-width:6"></circle>
+                <path d="M348 196 A26 26 0 0 1 366 182" style="fill:none;stroke:var(--tpaper);stroke-width:5;stroke-linecap:round"></path>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">02</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">Research</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-03" data-screen-label="Thumb 03" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <line x1="320" y1="124" x2="320" y2="148" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <path d="M292 176 L240 176 L240 212" style="fill:none;stroke:var(--tink);stroke-width:6;stroke-linecap:round;stroke-linejoin:round"></path>
+                <path d="M348 176 L400 176 L400 212" style="fill:none;stroke:var(--tink);stroke-width:6;stroke-linecap:round;stroke-linejoin:round"></path>
+                <rect x="278" y="84" width="84" height="40" rx="10" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <line x1="298" y1="104" x2="342" y2="104" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <path d="M320 148 L348 176 L320 204 L292 176 Z" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <rect x="198" y="212" width="84" height="40" rx="10" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <line x1="218" y1="232" x2="262" y2="232" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <rect x="358" y="212" width="84" height="40" rx="10" style="fill:var(--tink);stroke:var(--tink);stroke-width:6"></rect>
+                <line x1="378" y1="232" x2="422" y2="232" style="stroke:var(--tpaper);stroke-width:5;stroke-linecap:round"></line>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">03</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">Triage Tool design</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-04" data-screen-label="Thumb 04" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <path d="M308 185 C344 185 344 126 380 126" style="fill:none;stroke:var(--tink);stroke-width:6;stroke-linecap:round"></path>
+                <path d="M308 185 C344 185 344 236 380 236" style="fill:none;stroke:var(--tink);stroke-width:6;stroke-linecap:round"></path>
+                <rect x="214" y="136" width="104" height="66" rx="10" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <rect x="200" y="152" width="104" height="66" rx="10" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <line x1="276" y1="164" x2="276" y2="206" style="stroke:var(--tink);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 9"></line>
+                <line x1="218" y1="174" x2="256" y2="174" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <line x1="218" y1="196" x2="244" y2="196" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <circle cx="408" cy="126" r="28" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6"></circle>
+                <rect x="402" y="112" width="12" height="28" rx="3" style="fill:var(--tpaper)"></rect>
+                <rect x="394" y="120" width="28" height="12" rx="3" style="fill:var(--tpaper)"></rect>
+                <path d="M392 254 L388 270 L406 254" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <rect x="380" y="214" width="58" height="42" rx="12" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <line x1="394" y1="230" x2="424" y2="230" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <line x1="394" y1="242" x2="412" y2="242" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">04</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">Triage Tool build</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-05" data-screen-label="Thumb 05" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <path d="M320 118 C296 106 264 104 236 110 L236 238 C264 232 296 234 320 246 Z" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <path d="M320 118 C344 106 376 104 404 110 L404 238 C376 232 344 234 320 246 Z" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <line x1="256" y1="146" x2="300" y2="150" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <line x1="256" y1="172" x2="300" y2="176" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <line x1="256" y1="198" x2="288" y2="201" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <line x1="340" y1="176" x2="384" y2="172" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <line x1="340" y1="202" x2="372" y2="199" style="stroke:var(--tink);stroke-width:5;stroke-linecap:round"></line>
+                <path d="M382 126 L374 146 L400 126" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <rect x="364" y="66" width="104" height="62" rx="18" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6"></rect>
+                <circle cx="392" cy="97" r="6" style="fill:var(--tink)"></circle>
+                <circle cx="416" cy="97" r="6" style="fill:var(--tink)"></circle>
+                <circle cx="440" cy="97" r="6" style="fill:var(--tink)"></circle>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">05</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">HR assistant</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-06" data-screen-label="Thumb 06" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <circle cx="166" cy="138" r="10" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:5"></circle>
+                <circle cx="152" cy="180" r="10" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:5"></circle>
+                <circle cx="168" cy="222" r="10" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:5"></circle>
+                <path d="M200 112 L288 164 L328 164 L328 196 L288 196 L200 248 Z" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <line x1="340" y1="180" x2="368" y2="180" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <path d="M358 169 L370 180 L358 191" style="fill:none;stroke:var(--tink);stroke-width:6;stroke-linecap:round;stroke-linejoin:round"></path>
+                <path d="M380 228 C380 202 396 188 414 188 C432 188 448 202 448 228 Z" style="fill:var(--tink);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <circle cx="414" cy="150" r="20" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6"></circle>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">06</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">Lead routing automation</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-07" data-screen-label="Thumb 07" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <rect x="216" y="214" width="52" height="46" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></rect>
+                <rect x="268" y="184" width="52" height="76" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></rect>
+                <rect x="320" y="154" width="52" height="106" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></rect>
+                <rect x="372" y="124" width="52" height="136" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></rect>
+                <line x1="398" y1="124" x2="398" y2="66" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <path d="M398 68 L436 81 L398 94 Z" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6;stroke-linejoin:round"></path>
+                <circle cx="294" cy="168" r="11" style="fill:var(--tink)"></circle>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">07</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">Onboarding assistant</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-08" data-screen-label="Thumb 08" style="position:relative;width:750px;height:353px;overflow:hidden;background:var(--tbg)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc);opacity:var(--tdiscop)"></circle>
+                <rect x="204" y="84" width="232" height="184" rx="16" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <line x1="226" y1="110" x2="270" y2="110" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <circle cx="412" cy="110" r="6" style="fill:var(--tleaf)"></circle>
+                <rect x="234" y="198" width="30" height="46" rx="6" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:5"></rect>
+                <rect x="278" y="176" width="30" height="68" rx="6" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:5"></rect>
+                <rect x="322" y="152" width="30" height="92" rx="6" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:5"></rect>
+                <rect x="366" y="128" width="30" height="116" rx="6" style="fill:var(--tink);stroke:var(--tink);stroke-width:5"></rect>
+                <line x1="222" y1="198" x2="418" y2="198" style="stroke:var(--tink);stroke-width:4;stroke-linecap:round;stroke-dasharray:3 10;opacity:0.7"></line>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;font-family:var(--tfont);font-weight:800;font-size:30px;letter-spacing:-0.02em;color:var(--tink)">08</div>
+              <svg viewBox="0 0 64 64" width="34" height="34" style="position:absolute;right:64px;top:159.5px;color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+            </div>
+            <div style="font-size:16px;font-weight:600">ROI dashboard</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div id="thumb-00" data-screen-label="Thumb Company Setup" style="position:relative;width:750px;height:353px;overflow:hidden;background:oklch(0.32 0.06 155);--tdisc:oklch(0.38 0.065 155);--tink:oklch(0.97 0.012 85);--tleaf:oklch(0.76 0.11 148);--tpaper:oklch(0.45 0.07 155)">
+              <svg width="750" height="353" viewBox="0 0 750 353" style="position:absolute;left:0;top:0"><svg x="247" y="104.5" width="256" height="144" viewBox="0 0 640 360" overflow="visible">
+                <circle cx="320" cy="180" r="124" style="fill:var(--tdisc)"></circle>
+                <line x1="214" y1="260" x2="426" y2="260" style="stroke:var(--tink);stroke-width:6;stroke-linecap:round"></line>
+                <rect x="250" y="110" width="140" height="150" rx="8" style="fill:var(--tpaper);stroke:var(--tink);stroke-width:6"></rect>
+                <rect x="270" y="134" width="24" height="20" rx="3" style="fill:var(--tink)"></rect>
+                <rect x="308" y="134" width="24" height="20" rx="3" style="fill:var(--tink)"></rect>
+                <rect x="346" y="134" width="24" height="20" rx="3" style="fill:var(--tink)"></rect>
+                <rect x="270" y="170" width="24" height="20" rx="3" style="fill:var(--tink)"></rect>
+                <rect x="308" y="170" width="24" height="20" rx="3" style="fill:var(--tink)"></rect>
+                <rect x="346" y="170" width="24" height="20" rx="3" style="fill:var(--tink)"></rect>
+                <rect x="304" y="210" width="32" height="50" rx="4" style="fill:var(--tleaf);stroke:var(--tink);stroke-width:6"></rect>
+                <path d="M320 110 A24 24 0 0 1 294.76 73.96 A24 24 0 0 1 320 110 Z" style="fill:var(--tink)"></path>
+                <path d="M320 110 A24 24 0 0 1 345.24 73.96 A24 24 0 0 1 320 110 Z" style="fill:var(--tleaf)"></path>
+              </svg></svg>
+              <div style="position:absolute;left:64px;top:0;bottom:0;display:flex;align-items:center;gap:8px">
+                <svg viewBox="0 0 64 64" width="34" height="34" style="color:var(--tink);--leaf2:var(--tleaf)"><path d="M32 55 A24 24 0 0 1 6.76 18.96 A24 24 0 0 1 32 55 Z" fill="currentColor"></path><path d="M32 55 A24 24 0 0 1 57.24 18.96 A24 24 0 0 1 32 55 Z" style="fill:var(--leaf2)"></path></svg>
+                <span style="font-family:'Nunito',sans-serif;font-weight:800;font-size:26px;letter-spacing:-0.02em;color:var(--tink)">carevine</span>
+              </div>
+            </div>
+            <div style="font-size:16px;font-weight:600">Company Setup</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;thumbBg&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Tinted&quot;,&quot;Light&quot;,&quot;Dark&quot;],&quot;default&quot;:&quot;Tinted&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Thumbnails&quot;},&quot;showDisc&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Thumbnails&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const marks = {
+      '1a Vine C': { href: '#mk-a', font: "'Figtree', sans-serif" },
+      '1b Leaf Cross': { href: '#mk-b', font: "'Manrope', sans-serif" },
+      '1c Sprout Heart': { href: '#mk-c', font: "'Nunito', sans-serif" }
+    };
+    const markLabel = '1c Sprout Heart';
+    const m = marks[markLabel];
+    const themes = {
+      Tinted: {},
+      Light: { '--tbg': 'oklch(0.975 0.012 85)', '--tdisc': 'oklch(0.93 0.035 150)' },
+      Dark: {
+        '--tbg': 'oklch(0.32 0.06 155)', '--tdisc': 'oklch(0.38 0.065 155)',
+        '--tink': 'oklch(0.97 0.012 85)', '--tleaf': 'oklch(0.76 0.11 148)', '--tpaper': 'oklch(0.45 0.07 155)'
+      }
+    };
+    const thumbTheme = {
+      ...(themes[this.props.thumbBg ?? 'Tinted'] || {}),
+      '--tfont': m.font,
+      '--tdiscop': (this.props.showDisc ?? true) ? 1 : 0
+    };
+    return { markHref: m.href, markLabel, thumbTheme };
+  }
+}
+</script>
+</body>
+</html>
