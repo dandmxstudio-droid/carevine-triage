@@ -2,6 +2,8 @@ import "server-only";
 import { createDemo } from "../demo";
 import type { AIResult, DemoSnapshot, SeedTicket, Ticket } from "../types";
 import type { AirtableClient, Fields, RecordRow } from "./airtable-core";
+import { isDemoResult, demoResultsFormula } from "./demo-results";
+import { redact } from "../redact";
 export type ServerSnapshot = DemoSnapshot & {
   recordIds: Record<string, string>;
 };
@@ -55,6 +57,7 @@ export function mapSnapshot(
     if (!row) throw new Error("Demo data is not seeded.");
     recordIds[fallback.ticket_id] = row.id;
     const result = results
+      .filter(isDemoResult)
       .filter((r) =>
         (r.fields.ticket as string[] | undefined)?.includes(row.id),
       )
@@ -82,6 +85,7 @@ export function mapSnapshot(
         throw new Error("Incomplete ticket data.");
       source[key] = row.fields[key] as string;
     }
+    source.message = redact(source.message).text;
     const status = row.fields.status;
     const queue = row.fields.queue;
     if (
@@ -102,14 +106,19 @@ export function mapSnapshot(
       demo_wait_min: row.fields.demo_wait_min,
       ai,
       received_at: received,
-      status: status as Ticket["status"],
-      queue: queue as Ticket["queue"],
-      claimed_by:
-        typeof row.fields.claimed_by === "string"
-          ? row.fields.claimed_by
-          : null,
+      // Live admin triage may update Tickets. Public queues use published AI only.
+      status: ai.route.startsWith("Nurse")
+        ? "With nurse"
+        : ai.draft_reply
+          ? "Draft ready"
+          : "Needs rep",
+      queue: ai.route.startsWith("Nurse") ? "Nurse" : "Support",
+      claimed_by: null,
       gap_flagged: !!ai.kb_gap,
-      moved_at: queue === "Nurse" && ai.priority === "urgent" ? received : null,
+      moved_at:
+        ai.route.startsWith("Nurse") && ai.priority === "urgent"
+          ? received
+          : null,
     };
   });
   return { tickets, recordIds, loaded_at: now, offline: false };
@@ -120,7 +129,9 @@ export async function readSnapshot(
 ): Promise<ServerSnapshot> {
   const formula = `OR(${seeds.map((s) => `{ticket_id}='${s.ticket_id}'`).join(",")})`;
   const records = await client.list("Tickets", { filterByFormula: formula });
-  const results = await client.list("AI Results");
+  const results = await client.list("AI Results", {
+    filterByFormula: demoResultsFormula,
+  });
   return mapSnapshot(seeds, records, results);
 }
 function reconcile(
@@ -145,7 +156,9 @@ export async function seedDemo(
   seeds: SeedTicket[],
   now = Date.now(),
 ) {
-  const previousAI = await client.list("AI Results");
+  const previousAI = (
+    await client.list("AI Results", { filterByFormula: demoResultsFormula })
+  ).filter(isDemoResult);
   const previousGaps = await client.list("KB Gaps");
   const decisions = await client.list("Decisions", { "fields[]": "at" });
   const demo = createDemo(seeds, now);

@@ -11,7 +11,7 @@ export function AdminSetup({ configured }: { configured: boolean }) {
       <div className="page-heading">
         <div>
           <h1>Demo setup</h1>
-          <p>Carevine Helpdesk · Phase 2</p>
+          <p>Carevine Helpdesk · Phase 3</p>
         </div>
         <form action={logout}>
           <button className="button">Sign out</button>
@@ -114,7 +114,7 @@ export function AdminSetup({ configured }: { configured: boolean }) {
           Open support queue
         </Link>
         <Link className="button" href="/admin/tests">
-          Open mock test runner
+          Open Triage Tool test runner
         </Link>
       </div>
     </main>

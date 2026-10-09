@@ -1,6 +1,6 @@
 # Carevine Triage Tool
 
-Phase 2: a Next.js App Router demo matching the approved screens, with 16 synthetic tickets, 18 help center articles, and hardcoded Triage Tool results. Read [AGENTS.md](AGENTS.md) and [docs/HANDOFF.md](docs/HANDOFF.md) before making changes.
+Phase 3: a Next.js App Router demo matching the approved screens, with 16 synthetic tickets, 18 help center articles, and admin-only OpenAI Triage Tool runs. Read [AGENTS.md](AGENTS.md) and [docs/HANDOFF.md](docs/HANDOFF.md) before making changes.
 
 ## Run and verify
 
@@ -14,15 +14,21 @@ npm test
 npm run build
 ```
 
-Development: `http://localhost:3000`. Production: `npm run build` followed by `npm start`. On Vercel, use the **Next.js** framework preset and the repository root. Public pages remain usable offline. Phase 2 needs AIRTABLE_TOKEN, AIRTABLE_BASE_ID and ADMIN_PASSWORD in Vercel to seed and log actions.
+Development: `http://localhost:3000`. Production: `npm run build` followed by `npm start`. On Vercel, use the **Next.js** framework preset and the repository root. Public pages remain usable offline. Set AIRTABLE_TOKEN, AIRTABLE_BASE_ID, ADMIN_PASSWORD and OPENAI_API_KEY in Vercel. TRIAGE_MODEL is optional (default gpt-6-luna); remove any old Claude model ID.
 
 ## Scope
 
 The server reads Tickets and AI Results from Airtable through a shared five-minute cache. Public queue/status changes stay private in tab-local sessionStorage. Human actions append batched Decisions and checked KB Gaps with a random session_id. Reset restores only the visitor sandbox without Airtable calls. Missing or failed Airtable data uses the 16 CSV/mock tickets and an offline note. Fonts are self-hosted and supplied brand PNGs are unmodified.
 
-`/admin` and `/admin/tests` use ADMIN_PASSWORD and a signed httpOnly cookie. The admin schema check creates missing fields and shows type differences as information without blocking seeding; seeding upserts 16 tickets and mock results and clears Decisions. See [HANDOFF §16](docs/HANDOFF.md#16-admin-setup-steps-after-phase-2-deployment) for exact setup steps and token permissions. Claude, Slack and live triage remain later phases.
+`/admin` and `/admin/tests` use ADMIN_PASSWORD and a signed httpOnly cookie. The admin schema check creates missing fields and shows type differences as information without blocking seeding; seeding upserts 16 tickets and mock results and clears Decisions. See [HANDOFF §16](docs/HANDOFF.md#16-admin-setup-steps-after-phase-2-deployment) for exact setup steps and token permissions. Live OpenAI triage is available only to signed-in admins. Slack remains Phase 4. See [HANDOFF §17](docs/HANDOFF.md#17-exact-phase-3-test-steps-after-deployment) for the exact live-test workflow.
 
 Dynamic data supersedes the design placeholders: names, ticket text, IDs, article titles, queue counts, and priorities follow the CSV and prompt rules. The CSV login case uses a conservative low-confidence mock to expose the designed review state without inventing another member question. No source-only member-since dates are invented.
+
+## Live Triage Tool
+
+`src/lib/llm.ts` is the only OpenAI transport. The server redacts messages, validates strict structured output with Zod and one retry, applies crisis/clinical safety rules, restores names locally, and removes drafts with leftover tags or personal details. Every live run appends an AI Results row and updates live Tickets; KB gaps are logged. Public queues still use only the selected demo baseline through a five-minute cache, until an admin explicitly publishes a complete run. Historical results and Decisions are preserved by publication.
+
+The test runner sends one ticket request at a time, shows progress, supports manual accuracy ratings and saves those ratings with each ticket's automatic results in Test Runs. Server-signed result receipts prevent edited browser JSON from being saved or published as model output. No model calls occur while browsing public pages or resetting.
 
 ## Every route
 
@@ -55,7 +61,7 @@ Use these paths on the running app or your Vercel URL. The five nurse tickets al
 | `/nurse?ticket=CV-10018` | High reading and symptoms                            |
 | `/nurse?ticket=CV-10012` | Medication issue                                     |
 | `/nurse?ticket=CV-10084` | Symptom issue; send-back flow                        |
-| `/admin/tests`           | Run all 16 mocks, inspect JSON, mark draft accuracy  |
+| `/admin/tests`           | Run live tests, judge drafts, save and publish       |
 
 ## Click-through guide
 
@@ -65,6 +71,6 @@ Use these paths on the running app or your Vercel URL. The five nurse tickets al
 4. Switch to Nurse queue → claim the crisis → explicitly send the crisis template or log a call. Select a clinical ticket → I'm on it → Reply in app.
 5. Claim CV-10084 → Not clinical: send back to support → choose category → send → confirmation → Undo within ten seconds.
 6. Approve all seven drafts and choose Draft ready 0 to see the empty state. Reset demo restarts all flows.
-7. /admin/tests → Run all 16 → inspect results and mark draft accuracy. Automatic checks pass 16/16. Human accuracy review is left for Dan.
+7. /admin/tests → Run all 16 → wait for 16/16 completed → inspect the three required checks → View draft and mark ✓/✗ for each draft → Save run → Use these results for the demo. Then reload a public page and Reset demo. Human accuracy review is left for Dan.
 
 See [design-qa.md](design-qa.md) for evidence and verification limits.

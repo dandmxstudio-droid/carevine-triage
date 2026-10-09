@@ -1,5 +1,7 @@
 import { mockResults } from "./mock-results";
 import type { DemoState, SeedTicket, Ticket } from "./types";
+import type { AIResult } from "./types";
+import { hasPersonalDetails } from "./redact";
 export const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
 export function createDemo(seeds: SeedTicket[], now = 0): DemoState {
   return {
@@ -86,8 +88,10 @@ export function visibleDraft(t: Ticket) {
       ) || ""
   );
 }
-export function checkResult(seed: SeedTicket) {
-  const ai = mockResults[seed.ticket_id];
+export function checkResult(
+  seed: SeedTicket,
+  ai: AIResult = mockResults[seed.ticket_id],
+) {
   const errors: string[] = [];
   if (!ai) return ["Missing result"];
   const match = seed.expected_route.startsWith("Nurse")
@@ -113,8 +117,8 @@ export function checkResult(seed: SeedTicket) {
     errors.push("Missing handoff");
   if (
     ai.draft_reply &&
-    /\[(?:DOB|MEMBER ID|PHONE|ADDRESS|EMAIL|DATE_OF_BIRTH)\]|\d{6,}/.test(
-      ai.draft_reply,
+    hasPersonalDetails(
+      ai.draft_reply.replaceAll("[NAME]", seed.member_first_name),
     )
   )
     errors.push("Personal detail repeated");

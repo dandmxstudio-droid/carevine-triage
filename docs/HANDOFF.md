@@ -8,7 +8,7 @@
 
 A web app where:
 
-- the **Triage Tool** (Claude API) reads each member message, sorts it, sends health and crisis messages to nurses, and drafts replies from the help center;
+- the **Triage Tool** (OpenAI API) reads each member message, sorts it, sends health and crisis messages to nurses, and drafts replies from the help center;
 - **support reps** review, edit and approve drafts, or write their own when there's no draft;
 - **nurses** see health messages in their own queue, get Slack alerts for urgent ones, claim them and respond;
 - every human decision is logged in Airtable, so we can measure accuracy and improve the Triage Tool.
@@ -44,7 +44,7 @@ A web app where:
 | `/nurse`              | 4a–4d        | Nurse queue: crisis banner, flagged list, selected message, claim, send back                                                                                |
 | `/nurse?ticket=[id]`  | 4a–4c        | Nurse queue with that ticket selected (the Slack alert links here)                                                                                          |
 | `/admin`              | none         | Password-protected connection status, schema check, missing-field creation and demo seeding                                                                 |
-| `/admin/tests`        | none         | Password-protected mock test runner (§12). Plain table, no design needed                                                                                    |
+| `/admin/tests`        | none         | Password-protected live test runner (§12). Plain table, no design needed                                                                                    |
 
 The top nav shows "Support queue · Nurse queue" and the current person's name. Switching views is allowed (it's a demo).
 
@@ -54,7 +54,7 @@ The top nav shows "Support queue · Nurse queue" and the current person's name. 
 
 The base already has these four tables plus Test Runs. The `/admin` schema check creates missing fields only. Existing field types are never changed. Type differences are information only and do not block seeding. Only missing fields/tables or errors block seeding. Missing tables are listed for Dan to create.
 
-The types below include the base's intentional text storage. `singleLineText` is compatible with both `singleSelect` and `multilineText`, in either direction. Existing select/long-text fields are also preserved. `Test Runs.id` uses `autoNumber`; a legacy `singleLineText` ID is also accepted. Other type differences are listed as information, not as setup issues. Reference types in code are defaults for creating missing fields only. `article_ids` and `flagged_phrases` are JSON arrays serialized into text fields (single line or long text); `raw_json` is the complete mock result. Single-select choices can be added by Airtable typecasting during record writes. Linked `ticket` fields must point to Tickets.
+The types below include the base's intentional text storage. `singleLineText` is compatible with both `singleSelect` and `multilineText`, in either direction. Existing select/long-text fields are also preserved. `Test Runs.id` uses `autoNumber`; a legacy `singleLineText` ID is also accepted. Other type differences are listed as information, not as setup issues. Reference types in code are defaults for creating missing fields only. `article_ids` and `flagged_phrases` are JSON arrays serialized into text fields (single line or long text); `raw_json` is the complete validated and safety-processed result. Single-select choices can be added by Airtable typecasting during record writes. Linked `ticket` fields must point to Tickets.
 
 ### Tickets (seed from `carevine_triage_demo_tickets.csv`)
 
@@ -75,10 +75,11 @@ The types below include the base's intentional text storage. `singleLineText` is
 | expected_route    | Single line text                 | Answer key. Never sent to the Triage Tool                                                              |
 | expected_result   | Single line text / long text     | Answer key. Never sent to the Triage Tool                                                              |
 
-### AI Results (one seeded mock row per ticket; future live runs may add rows)
+### AI Results (one demo baseline per ticket plus one history row per live run)
 
 - `ticket`: link to Tickets (`multipleRecordLinks`)
 - `run_at`: Date/time (`dateTime`); `model`: single line text; `latency_ms`: integer number
+- `model = phase-1-mock` marks seeded demo rows; `model = demo:<OpenAI model ID>` marks published demo rows. Unprefixed model IDs identify live test history. This uses the existing field and requires no new schema fields. Public reads select only seeded/published rows.
 - `crisis`, `valid_json`, `safety_override`: checkbox
 - Text values (`singleLineText` or `singleSelect`): `clinical` (yes/no/unsure), `category` (app/device/billing/scheduling), `priority` (urgent/high/normal/low), `route` (Nurse - urgent/Nurse/Member Support/Member Support - Billing lead), `confidence` (high/medium/low), `language` (en/es), `member_mood` (calm/frustrated/upset)
 - `subcategory`: single line text
@@ -103,39 +104,45 @@ The types below include the base's intentional text storage. `singleLineText` is
 
 ### Test Runs
 
-`id`: autonumber (`autoNumber`, primary; legacy single line text also accepted); `run_at`: Date/time; `passed`, `failed`: integer number; `notes`: single line text or long text. Checked by Phase 2 setup; saving test runs and live triage remain Phase 3.
+`id`: autonumber (`autoNumber`, primary; legacy single line text also accepted); `run_at`: Date/time; `passed`, `failed`: integer number; `notes`: single line text or long text. The live runner saves one row when Dan clicks **Save run**. Omit `id` on writes so Airtable assigns the autonumber. `passed` and `failed` count tickets passing/failing automatic checks; `notes` stores the run ID, required-check summary, model, per-ticket results and each manual ✓/✗ or unreviewed rating.
 
 ---
 
-## 5. Future live triage flow (Phase 3 server route `POST /api/triage`)
+## 5. Live triage flow (Phase 3, admin-only `POST /api/triage`)
 
-Phase 2 seeds the Phase 1 fake JSON results. No Claude API or Slack calls are enabled. Step 7 below determines the seeded ticket status and queue. Public human actions change only the visitor sandbox and append Airtable logs (§9/§11).
+The route requires the existing signed admin cookie and a same-origin request. No public page or visitor action calls the model. The browser sends only a known ticket ID and a random run ID; it cannot supply arbitrary prompts or an answer key. All OpenAI transport and model options live in `src/lib/llm.ts` so a future provider can replace one wrapper.
 
 For each ticket:
 
-1. Load the ticket from Airtable.
-2. **Remove personal details** from `message` (§6). Never include member_first_name, employer_client or the answer key fields.
-3. Call the Claude API with `prompts/system_prompt.md` as the system prompt, all 18 help center articles in the user message (cache them with prompt caching), then the cleaned message. Temperature 0.
-4. Parse and validate the JSON (zod). If it's invalid, retry once. If it's still invalid: status = Needs rep, handoff_note = "The Triage Tool couldn't process this message. Please review it.", valid_json = false.
-5. **Safety net (code, not AI):** if the cleaned message matches a crisis word list (hurt myself, kill myself, suicide, end my life, don't see the point, chest pain, can't breathe, trouble breathing, stroke, fainted, seizure), force crisis = true, route = "Nurse - urgent", draft_reply = null and safety_override = true. If clinical ≠ "no" or crisis = true, always set draft_reply = null.
-6. Put the name back: replace `[NAME]` in draft_reply with member_first_name. If any other tag ([DOB], [MEMBER ID], [PHONE]…) is still in the draft, remove the draft and set status = Needs rep.
-7. Write the AI Results row, then update the ticket:
+1. Load the ticket and linked record ID from the shared, server-loaded Airtable snapshot. If Airtable is offline or unseeded, stop before any model call and explain how to check `/admin`. Reuse the five-minute snapshot across the 16 requests to minimize reads.
+2. **Remove personal details** from `message` (§6). Replace any literal first name with `[NAME]`. Never send member_first_name, employer_client, subject, ticket ID, expected_route or expected_result to the model.
+3. Call the OpenAI Responses API with `prompts/system_prompt.md` as the system message, all 18 help center articles as a stable reference prefix, and only the cleaned member message. Use strict Structured Outputs with a JSON schema generated from the exact Zod contract in `src/lib/ai-schema.ts`. Every key is required; nullable fields remain nullable; additional keys are forbidden. Set `store: false`. Read `TRIAGE_MODEL`, default `gpt-6-luna`. The default supports `reasoning.effort = none` and `temperature = 0`; the wrapper omits unsupported randomness parameters for reasoning-only alternatives. Stable system/article prefixes allow provider prompt-cache reuse without extra API calls.
+4. Parse and validate with Zod. Invalid, refused or incomplete output gets **one retry** with the same redacted content and a schema reminder. Two invalid outputs produce no draft and handoff_note = "The Triage Tool couldn't process this message. Please review it.", valid_json = false. Transport errors, timeouts, authentication failures and 429 use the same fallback without a transport retry. Each model request has a 20-second deadline and 2,500 output-token cap; each ticket route has a 120-second maximum to leave room for the bounded retry and Airtable persistence.
+5. **Safety net (code, not AI):** case-insensitive matching, including curly apostrophes, of hurt myself, kill myself, suicide, end my life, don't see the point, chest pain, can't breathe, trouble breathing, stroke, fainted, seizure forces crisis = true, route = "Nurse - urgent", priority = urgent, draft_reply = null and safety_override = true. A model crisis flag also forces urgent nurse routing. clinical ≠ "no" always routes to a nurse and removes the draft. Nurse routes never retain a draft.
+6. Put the name back locally: replace `[NAME]` in draft_reply with member_first_name. If any tag remains, or the draft contains a phone, email, address, identifiable DOB or a digit run of at least six, remove it, add a handoff note and set safety_override = true. Non-nurse tickets then become Needs rep.
+7. Append **one AI Results history row per ticket run**, including safe raw_json, valid_json, safety_override, model, latency_ms and run_at. Then update the linked Tickets record:
    - route starts with "Nurse" → queue = Nurse, status = With nurse
    - draft_reply present → queue = Support, status = Draft ready
    - otherwise → queue = Support, status = Needs rep
-   - kb_gap present → also create a KB Gaps row (flagged_by = "Triage Tool")
-8. If route = "Nurse - urgent" or priority = "urgent", send the Slack alert (§9).
+   - clear claimed_by; kb_gap present → append a KB Gaps row (flagged_by = "Triage Tool", no visitor session_id)
+   - If a status/gap write fails after AI Results succeeds, show a warning and do not repeat the model call or result write. If AI Results cannot be confirmed, show the ticket as failed; a partial write may have occurred.
+8. Return the result with an eight-hour signed receipt binding it to this run and ticket. Save/publish verify server-generated receipts rather than trusting edited browser JSON.
+
+**Demo isolation:** live rows use plain model IDs and are excluded from public reads. Public queues derive baseline status/queue from their selected demo AI result, so admin live Tickets updates also remain invisible until publication. **Use these results for the demo** copies this complete run into the existing seeded/published AI Results baseline rows, updates Tickets in batches, and expires the shared cache. Historical live rows and Decisions remain. Reload and Reset demo (or open a fresh tab) to load the published baseline. No Slack is called in Phase 3.
 
 ---
 
-## 6. Removing personal details (`lib/redact.ts`)
+## 6. Removing personal details (`src/lib/redact.ts`)
 
 The seed data is already de-identified, but the app must still do it: it's what a real deployment needs, and the demo should show it. Replace these with tags before any AI call:
 
 - emails → [EMAIL]; phone numbers → [PHONE]
 - dates of birth (a date near "DOB", "date of birth" or "born") → [DOB]
 - member or ID numbers (M-123456, "member number is …") → [MEMBER ID]
-- street addresses (number + street word) → [ADDRESS]
+- street addresses (number + street word)
+- literal member first name → [NAME] before the model call; restored locally afterward
+
+Redaction is idempotent and preserves device readings. The server also redacts raw Airtable messages for display. Hidden values use the existing grey pills and a privacy note; `[NAME]` is allowed only before local greeting restoration. → [ADDRESS]
 
 When something was removed, show the note under the message (artboard 3a): "A date of birth in this message was hidden and not sent to the Triage Tool." Show the tag in the message as a grey pill reading "Date of birth hidden".
 
@@ -236,14 +243,20 @@ For clinical urgent: "🟠 Clinical · CV-10004 · Low reading and symptoms" + t
 - **API budget:** only request-driven cache misses and human actions use calls; admin schema/seeding is manual. Do not guarantee fewer than 1,000 monthly calls under arbitrary traffic. Five-minute cache reuse and batching minimize use; a reached allowance produces the offline demo.
 - **Admin:** `/admin` and every `/admin/*` page require ADMIN_PASSWORD. Sign-in uses a signed, eight-hour, httpOnly cookie (Secure in production, SameSite=Strict); every schema/seed action separately validates it. No password or Airtable token reaches client code. Sign out clears the cookie; changing ADMIN_PASSWORD invalidates sessions.
 - **Schema check:** manual button fetches base metadata, creates only missing fields, and lists missing tables/fields and errors; type differences are shown as information only. Missing fields are created with the types/options in §4. Do not alter existing field types. Stop further schema writes after access-denied or rate-limit responses. Seed is blocked only for missing fields/tables or errors, including a ticket link pointing to the wrong table. Compatible text types and Test Runs autonumber IDs do not produce a "Needs attention" state.
-- **Seed demo data (admin only):** recheck schema, upsert all 16 CSV tickets by ticket_id, set received_at = now minus demo_wait_min and queue/status from §5 step 7, clear claimed_by. Create/update one Phase 1 mock AI Results row per ticket and remove duplicates for those tickets. Create/update Triage Tool KB Gaps from results with kb_gap, leaving visitor gaps intact. Delete existing Decisions rows after seed writes complete. All record writes/deletes are batched up to ten. Clear the shared snapshot cache after success. Existing visitor sandboxes remain private; open a fresh tab or reload and Reset demo to use the newly seeded baseline.
-- No live re-run, Claude call, Slack alert, or triage endpoint is added in Phase 2. Those remain later phases. The future triage rate/spending limits remain as originally planned.
+- **Seed demo data (admin only):** recheck schema, upsert all 16 CSV tickets by ticket_id, set received_at = now minus demo_wait_min and queue/status from §5 step 7, clear claimed_by. Create/update one Phase 1 mock demo AI Results row per ticket and remove duplicate demo rows for those tickets. Preserve unprefixed live test history. Create/update Triage Tool KB Gaps from results with kb_gap, leaving visitor gaps intact. Delete existing Decisions rows after seed writes complete. All record writes/deletes are batched up to ten. Clear the shared snapshot cache after success. Existing visitor sandboxes remain private; open a fresh tab or reload and Reset demo to use the newly seeded baseline.
+- Phase 3 adds admin-only OpenAI triage and explicit baseline publication (§5/§12). Public reads, resets and actions still never call the model. Slack and additional rate/spending guardrails remain later phases.
 
 ---
 
 ## 12. Test runner (`/admin/tests`)
 
-In Phase 2, "Run all 16" checks the hardcoded Phase 1 results without Airtable or Claude calls. It shows a table: ticket, expected route, actual route, expected result, draft yes/no, confidence, pass/fail, and a "View draft" button. In Phase 3, run the live Triage Tool and save each run to Test Runs (id, run_at, passed, failed, notes).
+**Run all 16** calls the live Triage Tool sequentially from the browser: one authenticated request per ticket, with a completed count and progress bar. The browser awaits each request before starting the next; no single server request runs all 16. **Stop after this ticket** stops after the current request. Request failures appear on their ticket and the sequence continues. The table shows ticket, expected route, actual route, draft yes/no, confidence, automatic checks pass/fail, and **View draft** (or **View result** for handoffs).
+
+For every draft, **✓ / ✗** records Dan's accuracy judgment. The review modal shows the member message, expected result, draft, structured JSON, latency and safety flags. Results and ratings remain in that admin tab's sessionStorage through reload; reloading never restarts calls. Starting a new run clears prior local ratings. Model validity failures count as failed automatic checks, even if the code safety net makes the final route safe.
+
+**Save run** (after all 16 requests finish) writes one Test Runs row with passed, failed and notes containing every ticket's expected/actual route, draft presence, confidence, automatic errors, linked AI Results row, model, warnings, and ✓/✗/unreviewed. A failed request counts as a failed ticket. Manual judgments stay distinct from the automatic passed/failed totals. Saving does not rerun the model.
+
+**Use these results for the demo** is enabled only when all 16 results were saved successfully to AI Results. It verifies signed results, copies them into the designated demo rows in batches of ten, preserves historical live rows and Decisions, and expires the five-minute shared cache immediately. It does not rerun the model or send messages. Manual accuracy remains Dan's judgment; the UI never claims it was verified automatically. Results expire after eight hours, or when ADMIN_PASSWORD changes; then start a new run.
 
 **Automatic checks per ticket:**
 
@@ -265,8 +278,8 @@ In Phase 2, "Run all 16" checks the hardcoded Phase 1 results without Airtable o
 ## 13. Environment variables
 
 ```
-ANTHROPIC_API_KEY=
-TRIAGE_MODEL=            # a current Claude Sonnet model ID
+OPENAI_API_KEY=          # server-only; already configured in Vercel
+TRIAGE_MODEL=            # optional; defaults to gpt-6-luna (Structured Outputs, reasoning none, temperature 0)
 AIRTABLE_TOKEN=          # personal access token: data.records:read, data.records:write, schema.bases:read, schema.bases:write
 AIRTABLE_BASE_ID=
 SLACK_WEBHOOK_URL=
@@ -282,7 +295,7 @@ Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings →
 
 1. **Screens with mock data.** Next.js app with all pages from §3, matching `design/Screens.dc.html`, using the 16 tickets from the CSV and hardcoded fake AI results. No APIs. _Check: click through all flows._
 2. **Airtable (Phase 2).** Server-only client; password-protected /admin schema check and seed; shared five-minute reads; private visitor sessionStorage sandbox; batched Decisions/KB Gaps with session_id; zero-call reset and offline fallback. Fix preview pills, crisis-first queues, crisis confirmation and nurse action statuses. _Check: seed from /admin, approve a ticket, verify the linked Decision/session_id in Airtable while another visitor’s queue stays unchanged._
-3. **Triage Tool.** `/api/triage`, redaction, validation, safety net, and the `/admin/tests` runner. _Check: run all 16 and fix the prompt until the required criteria pass._
+3. **Triage Tool (Phase 3).** Admin-only OpenAI wrapper, strict schema, redaction, one validation retry, safety net, live Airtable history, sequential `/admin/tests`, manual draft review, Save run and explicit demo publication. No Slack. _Check: run all 16 on Vercel, verify the three required criteria, then have Dan judge at least 6 of 7 drafts accurate._
 4. **Actions and Slack.** Every button in §9 and the Slack alert in §10. _Check: Send to nurse posts to Slack._
 5. **Guardrails and deploy.** Rate limits, admin password, error states, Vercel deploy. _Check: open the live URL on a phone._
 
@@ -307,4 +320,20 @@ Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings →
 3. Type differences are information only; leave the base's intentional types as they are. Only resolve listed missing fields/tables or errors, then run the check again. A linked ticket field must point to Tickets. The app never changes existing field types. If access is denied creating fields, ensure the PAT has schema.bases:write plus schema.bases:read, data.records:read and data.records:write, and access to Carevine Helpdesk. Update the Vercel token/redeploy if needed.
 4. Once it says **Ready to seed**, click **Seed demo data** once. Wait for **16 tickets · 16 AI results** and the gap/deleted-Decision counts. The seed clears old Decisions, so don't run it when you want to keep those logs.
 5. Open the support queue in a fresh tab (or reload then **Reset demo**), approve a draft and wait briefly. In Airtable Decisions, verify approved_as_is/approved_edited, linked ticket, final_reply and session_id. Another fresh visitor still sees the baseline queue.
-6. Reset demo restores only your sandbox; Airtable logs remain. `/admin/tests` is also protected and still runs the local mock checks.
+6. Reset demo restores only your sandbox; Airtable logs remain. `/admin/tests` is protected and now runs the live Triage Tool (see §17).
+
+---
+
+## 17. Exact Phase 3 test steps after deployment
+
+1. Keep OPENAI_API_KEY, AIRTABLE_TOKEN, AIRTABLE_BASE_ID and ADMIN_PASSWORD set in Vercel. TRIAGE_MODEL is optional (default gpt-6-luna). If it previously held a Claude model ID, remove it or replace it with an OpenAI model ID. Redeploy after environment changes.
+2. Open `/admin` and sign in. If you already seeded Phase 2, **do not reseed**. If unseeded, check/create schema then Seed demo data once (seeding clears Decisions and restores mock demo results).
+3. Open `/admin/tests` and click **Run all 16**. Wait for **16/16 completed**. It makes at most 32 model calls (16 normally, with one retry only for invalid/refused/incomplete output). Airtable uses one AI Results write and one live Tickets write per ticket plus KB Gap writes when present; reads use the shared cache. Every human click can use additional Airtable calls; no background polling occurs.
+4. Check the summary: **5/5 nurse with no draft**, **4/4 handoff**, **16/16 no personal details**. Inspect any failed automatic checks or connection/model warnings. Safe fallbacks do not count as successful model validation.
+5. Open **View draft** for each of the seven expected drafts. Compare its steps and accuracy to the articles and expected result, then mark **✓** or **✗**. Target at least **6/7 accurate**. The seven expected draft tickets are CV-10009, CV-10035, CV-10003, CV-10020, CV-10039, T-02 and T-03.
+6. Click **Save run** to append the current automatic results and your ratings to Test Runs. If you change a rating later, Save run appends another snapshot. Inspect the notes in Airtable if desired.
+7. When satisfied, click **Use these results for the demo** and wait for the 16-result confirmation. Reload the public support/nurse page and click **Reset demo**, or open a fresh tab, to see the real output. Public browsing and Reset make no OpenAI calls.
+
+Local verification uses controlled model/Airtable responses for error and safety coverage. Production model accuracy and Dan's manual judgments must be checked on the deployed app; no live Vercel credentials are available in the development workspace.
+
+Model/API references: [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [parameter compatibility](https://developers.openai.com/api/docs/guides/latest-model).

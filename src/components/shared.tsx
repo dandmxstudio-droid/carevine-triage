@@ -148,6 +148,7 @@ export function Message({
   const phrases = nurse ? ticket.ai.flagged_phrases : [];
   const dob = /\[(DOB|DATE_OF_BIRTH)\]/.test(text);
   const id = text.includes("[MEMBER ID]");
+  const otherPersonalDetails = /\[(PHONE|EMAIL|ADDRESS)\]/.test(text);
   return (
     <section className="card message" aria-label="Member message">
       <div className="message-person">
@@ -165,12 +166,14 @@ export function Message({
       <p className="message-text">
         <MessageText text={text} phrases={phrases} />
       </p>
-      {(dob || id) && (
+      {(dob || id || otherPersonalDetails) && (
         <p className="privacy-note">
           <Lock size={14} />
           {dob
             ? "A date of birth in this message was hidden and not sent to the Triage Tool."
-            : "A member number in this message was hidden and not sent to the Triage Tool."}
+            : id
+              ? "A member number in this message was hidden and not sent to the Triage Tool."
+              : "Personal details in this message were hidden and not sent to the Triage Tool."}
         </p>
       )}
     </section>
