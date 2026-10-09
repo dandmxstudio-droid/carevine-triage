@@ -63,6 +63,7 @@ export function DemoProvider({
   const stateRef = useRef(state);
   const [now, setNow] = useState(0);
   const [ready, setReady] = useState(false);
+  const [limited, setLimited] = useState(false);
   const [offline, setOffline] = useState(snapshot.offline);
   const offlineRef = useRef(snapshot.offline);
   const sessionId = useRef("");
@@ -96,11 +97,23 @@ export function DemoProvider({
       keepalive: true,
     })
       .then(async (response) => {
+        const result = await response.json();
+        if (result.limited) {
+          offlineRef.current = true;
+          pending.current = [];
+          setLimited(true);
+          try {
+            sessionStorage.setItem("carevine-write-limited", "1");
+          } catch {
+            /* Storage is optional. */
+          }
+          toast("Demo limit reached");
+          return;
+        }
         if (!response.ok) {
           failLogging();
           return;
         }
-        const result = await response.json();
         if (!result.logged) failLogging();
         else if (result.slack === "limit") toast("Demo limit reached");
         else if (result.slack === "failed")
@@ -123,6 +136,10 @@ export function DemoProvider({
       sessionId.current =
         sessionStorage.getItem(sessionKey) || sessionId.current;
       sessionStorage.setItem(sessionKey, sessionId.current);
+      if (sessionStorage.getItem("carevine-write-limited") === "1") {
+        offlineRef.current = true;
+        setLimited(true);
+      }
       const clock = Number(sessionStorage.getItem(clockKey));
       if (Number.isFinite(clock) && clock > 0 && clock <= n)
         sessionStart = clock;
@@ -240,7 +257,13 @@ export function DemoProvider({
         toast,
       }}
     >
-      {offline && (
+      {limited && (
+        <p className="offline-note" role="status">
+          Demo limit reached. You can keep exploring; new actions stay in this
+          tab.
+        </p>
+      )}
+      {offline && !limited && (
         <p className="offline-note" role="status">
           Demo running offline. Actions aren&apos;t being logged.
         </p>
@@ -251,6 +274,7 @@ export function DemoProvider({
       <div
         role="status"
         aria-live="polite"
+        aria-atomic="true"
         className={`toast ${notice ? "show" : ""}`}
       >
         {notice}

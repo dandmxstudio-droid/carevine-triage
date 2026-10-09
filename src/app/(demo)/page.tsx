@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo, Avatar, ArrowRight } from "@/components/shared";
 export default function Entry() {
   return (
-    <main className="entry">
+    <main id="main-content" tabIndex={-1} className="entry">
       <div className="entry-card">
         <Logo large />
         <div className="entry-intro">

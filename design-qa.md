@@ -1,5 +1,7 @@
 # Carevine Phase 1 design QA
 
+This is the historical Phase 1 report. Phase 5 supersedes the mobile table layout and the keyboard/Undo/deployment verification gaps below; see [HANDOFF §19](docs/HANDOFF.md#19-phase-5-verification-and-live-walkthrough) for current checks and remaining live Slack timing verification.
+
 **Source visual truth:** `design/Screens.dc.html`, `design/Carevine Brand.dc.html`, and supplied brand PNGs.
 
 **Implementation evidence:** `docs/qa/app-2a-final.jpg`; source evidence: `docs/qa/source-2a-final.jpg`.

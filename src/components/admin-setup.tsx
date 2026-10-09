@@ -21,11 +21,11 @@ export function AdminSetup({
     message: "",
   } as AdminResult);
   return (
-    <main className="main admin-main">
+    <main id="main-content" tabIndex={-1} className="main admin-main">
       <div className="page-heading">
         <div>
           <h1>Demo setup</h1>
-          <p>Carevine Helpdesk · Phase 4</p>
+          <p>Carevine Helpdesk · Phase 5</p>
         </div>
         <form action={logout}>
           <button className="button">Sign out</button>

@@ -77,13 +77,17 @@ export function NurseView() {
     router.push(`/nurse?ticket=${id}`, { scroll: false });
   }
   function claim(t: Ticket) {
+    if (t.claimed_by) return;
     update(
       t.ticket_id,
       { queue: "Nurse", status: "Claimed", claimed_by: "Maya Brooks, RN" },
       "claimed",
       "Nurse",
     );
-    toast("Claimed by you.");
+    toast("Claimed by Maya Brooks, RN.");
+  }
+  function ensureClaim(t: Ticket) {
+    if (!t.claimed_by) claim(t);
   }
   function sendBack(c: string, s: string) {
     if (!selected) return;
@@ -137,7 +141,9 @@ export function NurseView() {
             URGENT · CRISIS LANGUAGE ·{" "}
             <span className="mono">{crisis.ticket_id}</span> · arrived{" "}
             {waiting(crisis, now)} ago ·{" "}
-            {crisis.claimed_by ? "claimed by you." : "unclaimed."}
+            {crisis.claimed_by
+              ? `Claimed by ${crisis.claimed_by}.`
+              : "unclaimed."}
             {crisisReply && (
               <span className="nurse-action-status">
                 Crisis reply sent at {time(crisisReply.at)} by{" "}
@@ -148,7 +154,7 @@ export function NurseView() {
           {crisis.claimed_by ? (
             <span className="button">
               <Check size={16} />
-              Claimed by you
+              Claimed
             </span>
           ) : (
             <button className="button" onClick={() => claim(crisis)}>
@@ -157,7 +163,7 @@ export function NurseView() {
           )}
         </div>
       )}
-      <main className="main nurse-main">
+      <main id="main-content" tabIndex={-1} className="main nurse-main">
         <div className="nurse-heading">
           <h1>Nurse queue</h1>
           <p>
@@ -340,6 +346,7 @@ export function NurseView() {
                   <button
                     className="button"
                     onClick={() => {
+                      ensureClaim(selected);
                       update(selected.ticket_id, {}, "call_logged", "Nurse");
                       toast();
                     }}
@@ -412,6 +419,7 @@ export function NurseView() {
               <button
                 className="button danger-solid"
                 onClick={() => {
+                  ensureClaim(selected);
                   update(selected.ticket_id, {}, "crisis_reply_sent", "Nurse", {
                     final_reply: crisisTemplate,
                   });

@@ -5,7 +5,7 @@ import { Logo } from "./shared";
 export function AdminLogin() {
   const [state, action, pending] = useActionState(login, { error: "" });
   return (
-    <main className="entry">
+    <main id="main-content" tabIndex={-1} className="entry">
       <section className="entry-card">
         <Logo large />
         <h1>Admin sign in</h1>

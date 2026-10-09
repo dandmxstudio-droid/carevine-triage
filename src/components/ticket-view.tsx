@@ -223,7 +223,7 @@ export function TicketView({ id }: { id: string }) {
   return (
     <div className="app">
       <Header />
-      <main className="main ticket-main">
+      <main id="main-content" tabIndex={-1} className="main ticket-main">
         <div className="ticket-heading">
           <Back />
           <h1>{id}</h1>

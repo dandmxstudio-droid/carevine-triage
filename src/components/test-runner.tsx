@@ -144,7 +144,7 @@ export default function Tests({
   return (
     <div className="app">
       <Header />
-      <main className="main admin-main">
+      <main id="main-content" tabIndex={-1} className="main admin-main">
         <div className="page-heading">
           <div>
             <h1>Test runner</h1>
@@ -281,7 +281,9 @@ export default function Tests({
                   "Automatic checks",
                   "Review",
                 ].map((label) => (
-                  <th key={label}>{label}</th>
+                  <th key={label} scope="col">
+                    {label}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -293,14 +295,19 @@ export default function Tests({
                 const errors = result ? automaticChecks(seed, result) : [];
                 return (
                   <tr key={seed.ticket_id}>
-                    <td className="mono">{seed.ticket_id}</td>
-                    <td>{seed.expected_route}</td>
-                    <td>{result?.ai.route || "—"}</td>
-                    <td>
+                    <td className="mono" data-label="Ticket">
+                      {seed.ticket_id}
+                    </td>
+                    <td data-label="Expected route">{seed.expected_route}</td>
+                    <td data-label="Actual route">{result?.ai.route || "—"}</td>
+                    <td data-label="Draft">
                       {result ? (result.ai.draft_reply ? "Yes" : "No") : "—"}
                     </td>
-                    <td>{result ? title(result.ai.confidence) : "—"}</td>
+                    <td data-label="Confidence">
+                      {result ? title(result.ai.confidence) : "—"}
+                    </td>
                     <td
+                      data-label="Automatic checks"
                       className={
                         run.errors[seed.ticket_id] || errors.length
                           ? "fail"
@@ -321,7 +328,7 @@ export default function Tests({
                         </p>
                       ))}
                     </td>
-                    <td>
+                    <td data-label="Review">
                       {result && (
                         <div className="stack" style={{ gap: 6 }}>
                           <button

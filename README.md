@@ -1,76 +1,91 @@
 # Carevine Triage Tool
 
-Phase 3: a Next.js App Router demo matching the approved screens, with 16 synthetic tickets, 18 help center articles, and admin-only OpenAI Triage Tool runs. Read [AGENTS.md](AGENTS.md) and [docs/HANDOFF.md](docs/HANDOFF.md) before making changes.
+An AI Triage Tool for Carevine Health, a fictional virtual chronic-care company. This is a concept project with synthetic data only. Sending a reply or calling a member records a simulated action; it does not contact anyone.
 
-## Run and verify
+Built by **Dan Mota**, using **Codex for AI-assisted development**.
 
-Node.js 20.9+ is required; verification used Node.js 24.
+[Live demo](https://carevine-triage.vercel.app) · [Build handoff](docs/HANDOFF.md)
+
+## The problem
+
+In the fictional scenario, monthly tickets grew from **1,150 to 3,200**. First response time grew from **4.5 hours to 14 hours**, and clinical messages took **22 hours to reach a nurse**. Support reps were sorting health questions alongside account, device, billing and scheduling requests.
+
+The tool helps route messages and draft routine replies from the help center. It keeps decisions with people.
+
+## How it works
+
+```mermaid
+flowchart TB
+  Ticket["Member ticket"] --> Redaction["Remove personal details"]
+  Redaction --> Triage["Triage Tool"]
+  Triage --> Safety["Validate output and apply safety net"]
+  Safety --> Support["Support queue"]
+  Safety --> Nurse["Nurse queue"]
+  Nurse --> Slack["Private Slack alert for urgent tickets"]
+  Support --> Human["Human decision"]
+  Slack --> Human
+  Nurse --> Human
+  Human --> Log["Airtable decision log"]
+```
+
+The server removes names and other personal details before an AI call. OpenAI returns a strict JSON schema; invalid output gets one retry. Code applies a crisis pattern check and removes every crisis or clinical draft. The helpdesk restores the member's first name locally and discards drafts with leftover redaction tags. Failed model calls leave a ticket for a support rep to handle.
+
+Support reps review, edit, reject or send a draft, write their own reply, change a category, or send a ticket to a nurse with a reason. Nurses claim tickets, use the fixed crisis template, log calls, reply directly, or send a non-clinical ticket back. Confirmed actions write a Decisions row. These choices matter because a plausible AI answer can still be wrong, and clinical decisions need a qualified person.
+
+## Test results
+
+The test set contains **16 synthetic tickets**: seven draft cases, four help center handoffs, and five clinical or crisis cases. The runner checks routing, draft suppression and privacy; Dan reviews draft accuracy separately.
+
+| Recorded run | Automatic checks | Drafts judged accurate |
+| ------------ | ---------------- | ---------------------- |
+| Run 1        | 13/16            | —                      |
+| Run 2        | 16/16            | 7/7                    |
+
+Run 1 exposed two prompt issues: missing or unsynced readings were treated as clinical without a value or symptoms, and the tool did not consistently compare all matching articles for conflicting facts. Both instructions were corrected before run 2. These are Dan's recorded model test results, not a measure of clinical performance.
+
+The protected `/admin/tests` runner sends one request per ticket, shows progress, lets a reviewer mark each draft ✓/✗, and saves the run to Airtable. Publishing a run explicitly replaces the cached public demo results. Local verification also covers crisis patterns, redaction, validation, authentication, decision logging and limits, plus keyboard and 390px browser walkthroughs.
+
+## Privacy and cost
+
+- Personal details are redacted before every model call. Secrets and provider calls stay on the server. Slack alerts contain a ticket ID and scrubbed reason, never the member's name or message text.
+- Public pages make **no model calls**. They use cached Airtable results, shared for five minutes, or an offline fallback. Model runs require an admin password and signed cookie.
+- Each visitor has a private tab session. Queue changes do not change another visitor's tickets. **Reset demo** restores the session and wait clock without API calls.
+- Decisions are batched. Public sessions allow 100 Decision rows, 10 KB Gap rows and three Slack alert attempts; a server-instance burst gate allows 30 write requests per minute. Limits survive reset, and the row/Slack totals are checked in Airtable. At a limit, visitors can keep exploring locally.
+- Airtable's [Free plan allows 1,000 API calls per workspace per month](https://support.airtable.com/articles/7735693959-managing-api-call-limits-in-airtable), with five requests per second per base. Caching and limits reduce usage; they are basic demo guardrails, not a global traffic budget.
+
+## Stack
+
+Next.js App Router, React, TypeScript and Tailwind; OpenAI Responses API with Structured Outputs and Zod validation; Airtable REST API; Slack Block Kit incoming webhook; Vercel hosting. The small provider wrapper is `src/lib/llm.ts`. `TRIAGE_MODEL` selects the model, with `gpt-6-luna` as the default.
+
+## Run locally
+
+Use Node.js 20.9 or newer.
 
 ```sh
 npm ci
+cp .env.example .env.local
 npm run dev
-npm run typecheck
-npm test
-npm run build
 ```
 
-Development: `http://localhost:3000`. Production: `npm run build` followed by `npm start`. On Vercel, use the **Next.js** framework preset and the repository root. Public pages remain usable offline. Set AIRTABLE_TOKEN, AIRTABLE_BASE_ID, ADMIN_PASSWORD and OPENAI_API_KEY in Vercel. TRIAGE_MODEL is optional (default gpt-6-luna); remove any old Claude model ID.
+Open [localhost:3000](http://localhost:3000). With no Airtable configuration, the public demo uses the bundled synthetic tickets and cached mock results.
 
-## Scope
+For connected features, fill in `.env.local` with your own credentials:
 
-The server reads Tickets and AI Results from Airtable through a shared five-minute cache. Public queue/status changes stay private in tab-local sessionStorage. Human actions append batched Decisions and checked KB Gaps with a random session_id. Reset restores only the visitor sandbox without Airtable calls. Missing or failed Airtable data uses the 16 CSV/mock tickets and an offline note. Fonts are self-hosted and supplied brand PNGs are unmodified.
+| Variable                             | Purpose                                                           |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| `ADMIN_PASSWORD`                     | Protect admin pages, server actions and APIs                      |
+| `AIRTABLE_TOKEN`, `AIRTABLE_BASE_ID` | Read/write the five helpdesk tables; schema permissions for setup |
+| `OPENAI_API_KEY`                     | Admin-only live triage                                            |
+| `TRIAGE_MODEL`                       | Optional model override                                           |
+| `SLACK_WEBHOOK_URL`, `APP_URL`       | Slack alerts and the HTTPS app origin for nurse links             |
 
-`/admin` and `/admin/tests` use ADMIN_PASSWORD and a signed httpOnly cookie. The admin schema check creates missing fields and shows type differences as information without blocking seeding; seeding upserts 16 tickets and mock results and clears Decisions. See [HANDOFF §16](docs/HANDOFF.md#16-admin-setup-steps-after-phase-2-deployment) for exact setup steps and token permissions. Live OpenAI triage is available only to signed-in admins. Slack remains Phase 4. See [HANDOFF §17](docs/HANDOFF.md#17-exact-phase-3-test-steps-after-deployment) for the exact live-test workflow.
+Credentials are server-only; `.env.local` is ignored by Git. Configure the same values in Vercel. Table setup and the exact live-test steps are in [HANDOFF §§16–18](docs/HANDOFF.md#16-admin-setup-steps-after-phase-2-deployment). Seeding deletes existing Decisions; it is unnecessary for reviewing an already configured demo.
 
-Dynamic data supersedes the design placeholders: names, ticket text, IDs, article titles, queue counts, and priorities follow the CSV and prompt rules. The CSV login case uses a conservative low-confidence mock to expose the designed review state without inventing another member question. No source-only member-since dates are invented.
+```sh
+npm test
+npm run typecheck
+npm run build
+npm start
+```
 
-## Live Triage Tool
-
-`src/lib/llm.ts` is the only OpenAI transport. The server redacts messages, validates strict structured output with Zod and one retry, applies crisis/clinical safety rules, restores names locally, and removes drafts with leftover tags or personal details. Every live run appends an AI Results row and updates live Tickets; KB gaps are logged. Public queues still use only the selected demo baseline through a five-minute cache, until an admin explicitly publishes a complete run. Historical results and Decisions are preserved by publication.
-
-The test runner sends one ticket request at a time, shows progress, supports manual accuracy ratings and saves those ratings with each ticket's automatic results in Test Runs. Server-signed result receipts prevent edited browser JSON from being saved or published as model output. No model calls occur while browsing public pages or resetting.
-
-## Every route
-
-Use these paths on the running app or your Vercel URL. The five nurse tickets also have valid support URLs; these hide message content and link to the nurse queue.
-
-| Route                    | Flow                                                 |
-| ------------------------ | ---------------------------------------------------- |
-| `/admin`                 | Sign in, check/create missing schema, seed demo data |
-| `/`                      | Choose support rep or nurse                          |
-| `/support`               | Filters, recent urgent banner, empty state, reset    |
-| `/support/CV-10009`      | Cuff setup; high-confidence draft                    |
-| `/support/CV-10035`      | Login; low-confidence review                         |
-| `/support/CV-10003`      | Reschedule a coaching call                           |
-| `/support/CV-10020`      | Missing supply delivery                              |
-| `/support/CV-10039`      | Billing; two articles, medium confidence             |
-| `/support/T-02`          | Upset member; repeat sync problem                    |
-| `/support/T-03`          | Spanish draft and help center gap                    |
-| `/support/CV-10037`      | Outdated meter article; hidden DOB                   |
-| `/support/CV-10059`      | Spouse eligibility; missing article                  |
-| `/support/CV-10033`      | Conflicting refund articles                          |
-| `/support/CV-10067`      | Spanish coaching availability; hidden member number  |
-| `/support/CV-10018`      | Nurse-only content hidden from support               |
-| `/support/CV-10004`      | Nurse-only content hidden from support               |
-| `/support/CV-10012`      | Nurse-only content hidden from support               |
-| `/support/CV-10084`      | Nurse-only content hidden from support               |
-| `/support/T-01`          | Crisis content hidden from support                   |
-| `/nurse`                 | Crisis selected by default                           |
-| `/nurse?ticket=T-01`     | Crisis alert, claim, exact reply template            |
-| `/nurse?ticket=CV-10004` | Low reading and symptoms                             |
-| `/nurse?ticket=CV-10018` | High reading and symptoms                            |
-| `/nurse?ticket=CV-10012` | Medication issue                                     |
-| `/nurse?ticket=CV-10084` | Symptom issue; send-back flow                        |
-| `/admin/tests`           | Run live tests, judge drafts, save and publish       |
-
-## Click-through guide
-
-1. Enter as support rep → CV-10009 → View article → edit or approve → sent confirmation → Next ticket.
-2. CV-10035 demonstrates low confidence. Try Reject draft, Change category, and Send to nurse (reason required). T-02 and T-03 show upset-member and Spanish states.
-3. CV-10037, CV-10059, CV-10033, and CV-10067 are the four handoffs. Write a reply, toggle the gap checkbox, and send.
-4. Switch to Nurse queue → claim the crisis → explicitly send the crisis template or log a call. Select a clinical ticket → I'm on it → Reply in app.
-5. Claim CV-10084 → Not clinical: send back to support → choose category → send → confirmation → Undo within ten seconds.
-6. Approve all seven drafts and choose Draft ready 0 to see the empty state. Reset demo restarts all flows.
-7. /admin/tests → Run all 16 → wait for 16/16 completed → inspect the three required checks → View draft and mark ✓/✗ for each draft → Save run → Use these results for the demo. Then reload a public page and Reset demo. Human accuracy review is left for Dan.
-
-See [design-qa.md](design-qa.md) for evidence and verification limits.
+Read [AGENTS.md](AGENTS.md) and the handoff before changing the project. Approved screen references are in `design/`.

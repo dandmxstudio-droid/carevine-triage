@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Fragment, useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -51,7 +51,7 @@ export function Header({ nurse = false }: { nurse?: boolean }) {
         <span className="divider" />
         <span className="tool-name">Triage Tool</span>
       </Link>
-      <nav aria-label="Main">
+      <nav aria-label="Main navigation">
         <Link href="/support" aria-current={!nurse ? "page" : undefined}>
           Support queue
         </Link>
@@ -233,13 +233,16 @@ export function Modal({
   side?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement as HTMLElement | null;
     dialog?.showModal();
     return () => {
       dialog?.close();
-      previous?.focus();
+      if (previous?.isConnected && !(previous as HTMLButtonElement).disabled)
+        previous.focus();
+      else document.querySelector<HTMLElement>("main[tabindex]")?.focus();
     };
   }, []);
   return (
@@ -247,13 +250,36 @@ export function Modal({
       ref={ref}
       className={`modal ${wide ? "wide" : ""} ${side ? "side-panel" : ""}`}
       onCancel={onClose}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const controls = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            "a[href], button, input, select, textarea, [tabindex]",
+          ),
+        ).filter(
+          (element) =>
+            element.tabIndex >= 0 &&
+            !element.matches(":disabled") &&
+            element.getClientRects().length > 0,
+        );
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (!first || !last) return;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
     >
       <div className="modal-heading">
-        <h2 id="dialog-title">{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button
           className="icon-button close-button"
           aria-label="Close dialog"
@@ -336,6 +362,7 @@ export function CategoryForm({
   onClose: () => void;
   sendBack?: boolean;
 }) {
+  const formId = useId();
   return (
     <Modal
       title={sendBack ? "Send back to the support queue?" : "Change category"}
@@ -352,18 +379,23 @@ export function CategoryForm({
           );
         }}
       >
-        <label className="stack tight strong small">
-          Category
-          <select name="category" defaultValue={ticket.ai.category || "device"}>
+        <div className="stack tight strong small">
+          <label htmlFor={`${formId}-category`}>Category</label>
+          <select
+            id={`${formId}-category`}
+            name="category"
+            defaultValue={ticket.ai.category || "device"}
+          >
             <option value="app">App</option>
             <option value="device">Device</option>
             <option value="billing">Billing</option>
             <option value="scheduling">Scheduling</option>
           </select>
-        </label>
-        <label className="stack tight strong small">
-          Subcategory
+        </div>
+        <div className="stack tight strong small">
+          <label htmlFor={`${formId}-subcategory`}>Subcategory</label>
           <select
+            id={`${formId}-subcategory`}
             name="subcategory"
             defaultValue={ticket.ai.subcategory || "fit"}
           >
@@ -385,7 +417,7 @@ export function CategoryForm({
               </option>
             ))}
           </select>
-        </label>
+        </div>
         {sendBack && (
           <p className="muted small">
             The ticket will move to the support queue with no draft. The support

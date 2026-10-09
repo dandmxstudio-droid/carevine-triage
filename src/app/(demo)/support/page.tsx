@@ -37,7 +37,7 @@ export default function Support() {
   return (
     <div className="app">
       <Header />
-      <main className="main">
+      <main id="main-content" tabIndex={-1} className="main">
         <div className="page-heading">
           <div>
             <h1>Support queue</h1>
@@ -96,7 +96,17 @@ export default function Support() {
               const content = (
                 <>
                   <span className="ticket-id" role="cell">
-                    {t.ticket_id}
+                    {nurse ? (
+                      t.ticket_id
+                    ) : (
+                      <Link
+                        className="ticket-open"
+                        href={`/support/${t.ticket_id}`}
+                        aria-label={`Open ticket ${t.ticket_id}`}
+                      >
+                        {t.ticket_id}
+                      </Link>
+                    )}
                   </span>
                   <span className="preview" role="cell">
                     {nurse ? (
@@ -122,7 +132,11 @@ export default function Support() {
                       </>
                     )}
                   </span>
-                  <span className="table-category" role="cell">
+                  <span
+                    className="table-category"
+                    role="cell"
+                    data-label="Category"
+                  >
                     {t.ai.crisis
                       ? "Crisis"
                       : nurse
@@ -130,7 +144,11 @@ export default function Support() {
                         : title(t.ai.category)}
                     {!nurse && <span>{title(t.ai.subcategory)}</span>}
                   </span>
-                  <span className={`priority ${t.ai.priority}`} role="cell">
+                  <span
+                    className={`priority ${t.ai.priority}`}
+                    role="cell"
+                    data-label="Priority"
+                  >
                     {["urgent", "high"].includes(t.ai.priority) && (
                       <span className="dot" />
                     )}
@@ -138,11 +156,12 @@ export default function Support() {
                   </span>
                   <span
                     role="cell"
+                    data-label="Waiting"
                     style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}
                   >
                     {waiting(t, now)}
                   </span>
-                  <span role="cell">
+                  <span role="cell" data-label="Status">
                     <span
                       className={`badge status ${nurse ? "with-nurse" : t.status.toLowerCase().replaceAll(" ", "-")}`}
                     >
@@ -151,24 +170,14 @@ export default function Support() {
                   </span>
                 </>
               );
-              return nurse ? (
+              return (
                 <div
                   role="row"
-                  aria-label={`${t.ticket_id}, moved to the nurse queue`}
                   key={t.ticket_id}
-                  className="table-row nurse-row"
+                  className={`table-row ${nurse ? "nurse-row" : ""}`}
                 >
                   {content}
                 </div>
-              ) : (
-                <Link
-                  role="row"
-                  key={t.ticket_id}
-                  href={`/support/${t.ticket_id}`}
-                  className="table-row"
-                >
-                  {content}
-                </Link>
               );
             })}
           </div>
