@@ -200,6 +200,13 @@ export function DemoProvider({
       person: role === "Nurse" ? "Maya Brooks, RN" : "Julia Lee",
       role,
       action,
+      ...(action === "sent_to_nurse"
+        ? {
+            ticket_received_at: stateRef.current.tickets.find(
+              (ticket) => ticket.ticket_id === id,
+            )?.received_at,
+          }
+        : {}),
     };
     const events = [event];
     if (gap)

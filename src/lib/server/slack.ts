@@ -7,6 +7,7 @@ import type { LogBatch } from "./decisions";
 export type AlertStatus = "sent" | "failed" | "unconfigured";
 type Alert = {
   ticket: Ticket;
+  receivedAt: number;
   result?: AIResult;
   repReason?: string;
   demo?: boolean;
@@ -88,14 +89,22 @@ export function alertPayload(alert: Alert, app: URL, now = Date.now()) {
         "CV-10084": "Symptoms",
       } as Record<string, string>
     )[ticket.ticket_id] || "Health concern";
-  const minutes = Math.max(0, Math.floor((now - ticket.received_at) / 60000));
+  const seconds = Math.max(0, Math.floor((now - alert.receivedAt) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const age = demo
+    ? minutes > 0
+      ? `${minutes} min ago`
+      : "just now"
+    : seconds > 0
+      ? `${seconds} sec ago`
+      : "just now";
   const heading = `${demo ? "[Demo] " : ""}${
     repReason !== undefined
       ? `🟠 Sent to nurse by support rep · ${ticket.ticket_id}`
       : result.crisis
-        ? `🔴 URGENT · Crisis language · ${ticket.ticket_id} · arrived ${minutes} min ago`
+        ? `🔴 URGENT · Crisis language · ${ticket.ticket_id}`
         : `🟠 Clinical · ${ticket.ticket_id} · ${topic}`
-  }`;
+  } · arrived ${age}`;
   const reason = privateReason(repReason ?? result.reason, {
     ...ticket,
     ai: result,
@@ -193,6 +202,10 @@ export async function sendVisitorAlerts(
       const ticket = tickets.find((t) => t.ticket_id === event.ticket_id)!;
       const status = await send({
         ticket,
+        // Older open demo tabs may omit the clock; use the original demo wait,
+        // never the shared Airtable seed timestamp, in that case.
+        receivedAt:
+          event.ticket_received_at ?? Date.now() - ticket.demo_wait_min * 60000,
         repReason: event.note || "A Support rep requested nurse review.",
         demo: true,
       });

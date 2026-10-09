@@ -25,13 +25,13 @@ const session = "11111111-1111-4111-8111-111111111111";
 
 test("Block Kit crisis and clinical alerts contain the reason, private title and exact nurse link", () => {
   const payload = alertPayload(
-    { ticket: crisis },
+    { ticket: crisis, receivedAt: 1700000000000 },
     app,
-    crisis.received_at + 2 * 60000,
+    1700000000000 + 2 * 1000,
   );
   assert.equal(
     payload.text,
-    "🔴 URGENT · Crisis language · T-01 · arrived 2 min ago",
+    "🔴 URGENT · Crisis language · T-01 · arrived 2 sec ago",
   );
   assert.equal(
     payload.blocks[2].elements?.[0].url,
@@ -46,8 +46,12 @@ test("Block Kit crisis and clinical alerts contain the reason, private title and
   assert.ok(!JSON.stringify(payload).includes(crisis.message));
   const clinical = tickets.find((t) => t.ticket_id === "CV-10004")!;
   assert.equal(
-    alertPayload({ ticket: clinical }, app).text,
-    "🟠 Clinical · CV-10004 · Low reading and symptoms",
+    alertPayload(
+      { ticket: clinical, receivedAt: 1700000000000 },
+      app,
+      1700000000000,
+    ).text,
+    "🟠 Clinical · CV-10004 · Low reading and symptoms · arrived just now",
   );
   assert.equal(
     urgentAlert({
@@ -69,6 +73,30 @@ test("Block Kit crisis and clinical alerts contain the reason, private title and
     urgentAlert({ ...clinical.ai, priority: "high", route: "Nurse" }),
     false,
   );
+});
+
+test("admin alert ages start with the current receipt, not the seeded ticket, and count model/save time in seconds", () => {
+  const receivedAt = 1700000000000;
+  const stale = { ...crisis, received_at: receivedAt - 298 * 60000 };
+  for (const [elapsed, expected] of [
+    [0, "just now"],
+    [999, "just now"],
+    [1000, "1 sec ago"],
+    [61000, "61 sec ago"],
+    [-1000, "just now"],
+  ] as const) {
+    const payload = alertPayload(
+      { ticket: stale, receivedAt },
+      app,
+      receivedAt + elapsed,
+    );
+    assert.equal(
+      payload.text,
+      `🔴 URGENT · Crisis language · T-01 · arrived ${expected}`,
+    );
+    assert.equal(payload.blocks[0].text?.text, payload.text);
+    assert.ok(!JSON.stringify(payload).includes("298 min"));
+  }
 });
 
 test("free-text reasons strip member names, message excerpts, flagged phrases and personal details", () => {
@@ -103,10 +131,19 @@ test("free-text reasons strip member names, message excerpts, flagged phrases an
     "[NAME] needs review",
   );
   const payload = alertPayload(
-    { ticket, repReason: "Please assess the medication question", demo: true },
+    {
+      ticket,
+      receivedAt: 1700000000000 - 120000,
+      repReason: "Please assess the medication question",
+      demo: true,
+    },
     app,
+    1700000000000,
   );
-  assert.equal(payload.text, "[Demo] 🟠 Sent to nurse by support rep · T-01");
+  assert.equal(
+    payload.text,
+    "[Demo] 🟠 Sent to nurse by support rep · T-01 · arrived 2 min ago",
+  );
   assert.equal(
     payload.blocks[1].text?.text,
     "Reason: Please assess the medication question",
@@ -133,24 +170,36 @@ test("Slack makes one bounded server request; HTTP and network failures never th
       assert.ok(init.signal);
       return new Response("sensitive-response", { status: 500 });
     }) as typeof fetch;
-    assert.equal(await sendSlackAlert({ ticket: crisis }, failed), "failed");
+    assert.equal(
+      await sendSlackAlert(
+        { ticket: crisis, receivedAt: 1700000000000 },
+        failed,
+      ),
+      "failed",
+    );
     assert.equal(calls, 1);
     assert.equal(
-      await sendSlackAlert({ ticket: crisis }, (async () => {
-        throw new Error("test-secret sensitive-response");
-      }) as typeof fetch),
+      await sendSlackAlert(
+        { ticket: crisis, receivedAt: 1700000000000 },
+        (async () => {
+          throw new Error("test-secret sensitive-response");
+        }) as typeof fetch,
+      ),
       "failed",
     );
     assert.equal(
       await sendSlackAlert(
-        { ticket: crisis },
+        { ticket: crisis, receivedAt: 1700000000000 },
         (async () => new Response("ok")) as typeof fetch,
       ),
       "sent",
     );
     process.env.SLACK_WEBHOOK_URL = "https://untrusted.example/services/secret";
     assert.equal(
-      await sendSlackAlert({ ticket: crisis }, failed),
+      await sendSlackAlert(
+        { ticket: crisis, receivedAt: 1700000000000 },
+        failed,
+      ),
       "unconfigured",
     );
     assert.equal(calls, 1);
@@ -210,6 +259,94 @@ function quotaBase() {
   );
   return { client, rows, reads: () => reads };
 }
+
+test("visitor transfer alert uses its validated session arrival and never writes that timing hint to Airtable", async () => {
+  const base = quotaBase();
+  const receivedAt = Date.now() - 7 * 60000;
+  const batch = parseBatch(
+    {
+      session_id: session,
+      events: [
+        {
+          ticket_id: "T-01",
+          at: Date.now(),
+          action: "sent_to_nurse",
+          role: "Support rep",
+          note: "Nurse review requested",
+          ticket_received_at: receivedAt,
+        },
+      ],
+    },
+    ["T-01"],
+  );
+  assert.equal(batch.events[0].ticket_received_at, receivedAt);
+  const saved = await logDecisions(base.client, batch, { "T-01": "recTicket" });
+  assert.ok(!("ticket_received_at" in saved[0].fields));
+  assert.equal(
+    await sendVisitorAlerts(
+      base.client,
+      batch,
+      saved,
+      tickets,
+      async (alert) => {
+        assert.equal(alert.receivedAt, receivedAt);
+        assert.match(
+          alertPayload(alert, app, receivedAt + 7 * 60000).text,
+          /arrived 7 min ago$/,
+        );
+        return "sent";
+      },
+    ),
+    "sent",
+  );
+});
+
+test("legacy visitors without the clock use the original demo wait, never the seed age", async () => {
+  const base = quotaBase();
+  const batch: LogBatch = {
+    session_id: session,
+    events: [
+      {
+        ticket_id: "T-01",
+        at: 0,
+        person: "Julia Lee",
+        role: "Support rep",
+        action: "sent_to_nurse",
+        note: "Nurse review",
+      },
+    ],
+  };
+  const saved = await logDecisions(base.client, batch, { "T-01": "recTicket" });
+  const before = Date.now();
+  await sendVisitorAlerts(base.client, batch, saved, tickets, async (alert) => {
+    assert.ok(alert.receivedAt >= before - crisis.demo_wait_min * 60000);
+    assert.ok(alert.receivedAt <= Date.now() - crisis.demo_wait_min * 60000);
+    assert.notEqual(alert.receivedAt, crisis.received_at);
+    return "sent";
+  });
+});
+
+test("public arrival hints reject invalid timestamps and allow legacy transfers without a hint", () => {
+  const event = {
+    ticket_id: "T-01",
+    at: Date.now(),
+    role: "Support rep",
+    action: "sent_to_nurse",
+    note: "Nurse review",
+  };
+  for (const ticket_received_at of [-1, Infinity, NaN, "now", 1e20])
+    assert.throws(() =>
+      parseBatch(
+        { session_id: session, events: [{ ...event, ticket_received_at }] },
+        ["T-01"],
+      ),
+    );
+  assert.equal(
+    parseBatch({ session_id: session, events: [event] }, ["T-01"]).events[0]
+      .ticket_received_at,
+    undefined,
+  );
+});
 
 test("only the first three visitor transfers post Slack; all four Decisions survive, even after a reload/reset", async () => {
   const base = quotaBase();

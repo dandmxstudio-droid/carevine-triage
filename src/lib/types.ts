@@ -56,6 +56,8 @@ export type Decision = {
   from_value?: string;
   to_value?: string;
   draft_useful?: "Yes" | "No";
+  // Visitor-local ticket arrival, used only to time a Support rep's Slack alert.
+  ticket_received_at?: number;
   gap?: { article_ids: string[]; text: string };
 };
 export type DemoState = { tickets: Ticket[]; decisions: Decision[] };

@@ -59,6 +59,15 @@ export function parseBatch(value: unknown, ids: string[]): LogBatch {
       (e.role !== "Support rep" || !event.note?.trim())
     )
       throw new Error("A Support rep reason is required.");
+    if (e.action === "sent_to_nurse" && e.ticket_received_at !== undefined) {
+      if (
+        !Number.isFinite(e.ticket_received_at) ||
+        e.ticket_received_at < 0 ||
+        !Number.isFinite(new Date(e.ticket_received_at).getTime())
+      )
+        throw new Error("Invalid ticket arrival time.");
+      event.ticket_received_at = e.ticket_received_at;
+    }
     if (e.action === "crisis_reply_sent") event.final_reply = crisisTemplate;
     if (e.draft_useful !== undefined) {
       if (!["Yes", "No"].includes(e.draft_useful))

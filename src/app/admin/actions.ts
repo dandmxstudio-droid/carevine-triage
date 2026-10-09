@@ -87,10 +87,11 @@ export async function testCrisisAlert(
   _previous: AdminResult,
 ): Promise<AdminResult> {
   await requireAdmin();
-  const ticket = createDemo(loadData().tickets, Date.now()).tickets.find(
+  const receivedAt = Date.now();
+  const ticket = createDemo(loadData().tickets, receivedAt).tickets.find(
     (t) => t.ticket_id === "T-01",
   )!;
-  const status = await sendSlackAlert({ ticket });
+  const status = await sendSlackAlert({ ticket, receivedAt });
   return status === "sent"
     ? { message: "T-01 crisis alert sent to Slack." }
     : {

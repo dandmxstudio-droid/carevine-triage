@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     const ticket = snapshot.tickets.find((t) => t.ticket_id === ticketId);
     if (!ticket)
       return NextResponse.json({ error: "Unknown ticket." }, { status: 404 });
+    const receivedAt = Date.now();
     const outcome = await triageTicket(ticket);
     const recordId = await recordTriage(
       airtable(),
@@ -45,7 +46,11 @@ export async function POST(request: Request) {
       snapshot.recordIds[ticketId],
     );
     if (urgentAlert(outcome.ai)) {
-      const status = await sendSlackAlert({ ticket, result: outcome.ai });
+      const status = await sendSlackAlert({
+        ticket,
+        result: outcome.ai,
+        receivedAt,
+      });
       if (status !== "sent")
         outcome.warnings.push(
           "Slack alert could not be delivered; the triage result was saved.",

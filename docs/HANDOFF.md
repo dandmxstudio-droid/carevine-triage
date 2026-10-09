@@ -186,7 +186,7 @@ Label every AI-generated block "AI-generated. Review before sending."
 **Nurse queue (`/nurse`)**
 
 - Rows: queue = Nurse. Sort: crisis first, then urgent > high, then longest waiting.
-- Red banner at top while any crisis ticket is unclaimed (4a): "URGENT · CRISIS LANGUAGE · T-01 · arrived 2 min ago · unclaimed" + "I'm on it". It becomes "Claimed by you" once claimed (4b).
+- Red banner stays at the top while a crisis ticket remains in the nurse queue (4a): "URGENT · CRISIS LANGUAGE · T-01 · arrived 2 min ago · unclaimed" + "I'm on it". Once claimed it says **Claimed by Maya Brooks, RN** and removes the claim button (4b).
 - Header text: "No replies are drafted here; nurses respond directly."
 
 ---
@@ -226,19 +226,23 @@ Match artboard 5. Implemented in server-only `src/lib/server/slack.ts`, using `S
 
 Each message has an **Open in nurse queue** Block Kit URL button pointing to `APP_URL/nurse?ticket=<id>`. Deep links select that ticket even in a fresh visitor sandbox whose baseline still places it in Support. Claiming then moves it into that nurse visitor's own queue. Shared Tickets remain untouched by public actions.
 
+**Button acknowledgement:** `POST /api/slack/actions` immediately returns an empty HTTP 200. It does not read or log the callback body, process actions, use response_url, write to Airtable, or call the Triage Tool or Slack. Slack callbacks require neither the admin cookie nor a browser Origin. In the Slack app's **Interactivity & Shortcuts**, enable Interactivity, set **Request URL** to **https://carevine-triage.vercel.app/api/slack/actions**, then Save Changes. The URL button still opens the nurse ticket; acknowledgement prevents Slack's interaction warning. No new secret or environment variable is required for this acknowledgement-only endpoint.
+
 ```
-🔴 URGENT · Crisis language · T-01 · arrived 2 min ago
+🔴 URGENT · Crisis language · T-01 · arrived just now
 Reason: crisis language detected in a member message. A nurse needs to respond now.
 <https://APP_URL/nurse?ticket=T-01|Open in nurse queue>
 ```
 
-For clinical urgent: "🟠 Clinical · CV-10004 · Low reading and symptoms" + the sanitized reason + link.
+For clinical urgent: "🟠 Clinical · CV-10004 · Low reading and symptoms · arrived <n> sec ago" + the sanitized reason + link.
+
+**Alert clock:** live `/admin/tests` alerts use the server timestamp immediately before that ticket enters the Triage Tool in its current request. Elapsed model/retry and Airtable-save time is included, displayed as **arrived just now** for less than a second or **arrived <n> sec ago** afterward. The manual admin crisis alert uses the timestamp when that admin action starts. Neither uses Airtable's seeded received_at. Public rep transfers include **arrived <n> min ago**, computed from the ticket's visitor-local arrival (session start minus demo_wait_min). The browser captures that timestamp on the transfer event as `ticket_received_at`; the server validates it, uses it only for Slack timing, and never writes the hint to Airtable or uses it for quota ordering. Capture per event preserves the right clock even if reset happens before the batch flushes. Older open tabs without the hint use the original demo_wait_min as a fallback rather than seed age. Future arrival hints are displayed as just now.
 
 **When alerts fire:**
 
 - **Live `/admin/tests` runs:** every result with route `Nurse - urgent` **or** priority `urgent`, after its history row is saved. No `[Demo]` prefix. No alert for ordinary nurse routes unless urgent. Running tests again posts new alerts; Save run and Use these results for the demo do not post or call the model.
-- **Public Send to nurse:** every confirmed Support rep transfer appends its `sent_to_nurse` Decision first, then posts `[Demo] 🟠 Sent to nurse by support rep · <id>` with the sanitized rep reason and nurse button. Any visitor may use this; the first three transfers per UUID session are eligible. The fourth and later transfers still move the private ticket and save Decisions but skip Slack and show **Demo limit reached**.
-- **`/admin` → Send test crisis alert:** password-protected server action posts T-01 using its synthetic crisis result and a fresh two-minute arrival time. It makes no OpenAI or Airtable calls and leaves public state unchanged. Intended for recording the demo video.
+- **Public Send to nurse:** every confirmed Support rep transfer appends its `sent_to_nurse` Decision first, then posts `[Demo] 🟠 Sent to nurse by support rep · <id> · arrived <n> min ago` with the sanitized rep reason and nurse button. Any visitor may use this; the first three transfers per UUID session are eligible. The fourth and later transfers still move the private ticket and save Decisions but skip Slack and show **Demo limit reached**.
+- **`/admin` → Send test crisis alert:** password-protected server action posts T-01 using its synthetic crisis result and the current action's receipt timestamp (**arrived just now**, or seconds elapsed). It makes no OpenAI or Airtable calls and leaves public state unchanged. Intended for recording the demo video.
 
 **Limit and failure behavior:** transfer timestamps are assigned by the server. After a batch with transfers is logged, one additional Airtable read selects the first three Support rep `sent_to_nurse` rows for that session, ordered by `at` (`maxRecords=3`). Only those newly saved rows may post. Browser log batches run sequentially. The durable history survives reload, Reset demo and server cold starts. Failed Slack attempts consume an allowance; a new tab/session has its own allowance. Admin reseeding deletes Decisions and therefore clears allowances; do not reseed just to test Phase 4. If Airtable logging or quota reads fail, skip public Slack safely. Successful Decisions remain saved if the quota read fails.
 
@@ -250,7 +254,7 @@ Slack has a five-second timeout, no automatic retry, and no redirect following. 
 
 - **Private sandboxes:** each visitor has a random UUID session_id, persisted for their tab. All queue status, claim, draft, category, feedback and send-back changes live in sessionStorage. Visitors do not change each other's queues.
 - **Reads:** server-only Airtable REST client. Shared Next.js Data Cache, five-minute revalidation, keyed by base. A normal cache miss reads Tickets and AI Results (two calls at the seeded size). Pagination uses up to 100 records per page. No polling, per-action ticket reads or background refresh timers. Each valid public log batch checks its session's Decisions total; batches with checked gaps also check the KB Gaps total. A batch with a Support rep transfer additionally reads at most three Decisions to check the Slack allowance. No Airtable reads are made at build time or merely opening `/admin`.
-- **"Updated [time]":** snapshot load time. Public ticket received_at is rebased in the browser to tab session start minus demo_wait_min, independent of Airtable seed time. The start is persisted in sessionStorage across reloads/navigation; existing sandboxes without a start are migrated while retaining their actions. Waiting times count up using the local clock. Airtable received_at and admin live alert arrival times remain unchanged.
+- **"Updated [time]":** snapshot load time. Public ticket received_at is rebased in the browser to tab session start minus demo_wait_min, independent of Airtable seed time. The start is persisted in sessionStorage across reloads/navigation; existing sandboxes without a start are migrated while retaining their actions. Waiting times count up using the local clock. Airtable received_at stays unchanged; admin Slack alert ages use the current run/action receipt (§10).
 - **"Reset demo":** clear only that visitor's sandbox and local action/status history; restore its loaded baseline results and restart the visitor session clock with the original demo waits. Keep the session_id and Slack allowance. No Airtable read, write, delete, AI call or action log is triggered by reset. Existing Airtable logs remain intact.
 - **Logging:** public `POST /api/decisions` validates up to ten actions, resolves linked ticket record IDs from the cached server snapshot, and writes Decisions in batches of at most ten. Checked gap flags append an additional gap_flagged Decision and KB Gaps row with the same session_id. Actions within a short 250ms window share a batch; browser batches are sent sequentially, and keepalive allows an in-flight log request to finish during navigation/reload. No automatic retry after failed or ambiguous writes, avoiding duplicate logs and excess calls. A partial failure may have already saved Decisions before a KB Gaps write failed.
 - **Offline:** missing configuration/data, invalid records, failed reads/writes, or Airtable 429 fall back to the mock baseline for server reads. Existing visitor changes remain usable if logging fails. Show: "Demo running offline. Actions aren't being logged." Stop logging for that mounted sandbox after failure; a later page load can recover when cached data becomes available. Offline snapshots are cached too, preventing repeated failure calls. Reset makes no connection attempt.
@@ -367,7 +371,7 @@ Model/API references: [GPT-6 Luna](https://developers.openai.com/api/docs/models
 
 **Local verification:** 68 automated tests and the production build pass. Crisis tests cover every requested pattern and the three non-crisis examples; additional tests verify visitor clock rebasing/reset and overlapping AI/safety highlights. A controlled browser run exercises all 13 Decision action types (including both feedback choices, edited/unchanged approval, gap flag, crisis cancel/confirm and nurse Undo), all 16 sequential live tests, manual crisis success/failure, three public alerts, fourth/reset limits and fresh-tab deep links. Provider requests are intercepted with synthetic responses; actual Vercel-to-Slack delivery must be checked using steps above.
 
-Slack references: [Incoming webhooks](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) and [Block Kit URL buttons](https://docs.slack.dev/reference/block-kit/block-elements/button-element/).
+Slack references: [Incoming webhooks](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/), [Block Kit URL buttons](https://docs.slack.dev/reference/block-kit/block-elements/button-element/), and [interaction acknowledgement/configuration](https://docs.slack.dev/interactivity/handling-user-interaction).
 
 ### Wait clock and crisis safety follow-up checks
 
@@ -391,3 +395,9 @@ Slack references: [Incoming webhooks](https://docs.slack.dev/messaging/sending-m
 6. Complete the outstanding live delivery check: sign in at `/admin`, open `/admin/tests`, click **Run all 16**, and measure from the T-01 request starting to its red Slack post arriving in #nurse-alerts. The §15 requirement is **under ten seconds**. Check the private reason and **Open in nurse queue** link. The manual **Send test crisis alert** button is useful for recording but does not prove live-model latency. Actual Vercel-to-Slack timing remains unverified here because the deployed admin credentials are not present locally; controlled Slack responses passed.
 
 References: [WCAG text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [Airtable API limits](https://support.airtable.com/articles/7735693959-managing-api-call-limits-in-airtable).
+
+### Slack age and button acknowledgement follow-up
+
+- Live/admin alerts now use the current run/action receipt clock in seconds, and rep transfers use the visitor's ticket arrival clock in minutes (§10). Airtable received_at, Decision quota ordering and the three-attempt Slack allowance remain unchanged.
+- In Slack app **Interactivity & Shortcuts**, turn Interactivity on and paste **https://carevine-triage.vercel.app/api/slack/actions** into **Request URL**, then Save Changes. Click **Open in nurse queue** on a new alert: it opens the selected ticket and its callback receives an empty HTTP 200. No admin login is required for the acknowledgement endpoint; it performs no actions or provider calls.
+- Verification: **76 unit tests** and the production build pass. A controlled browser/API run uses a 298-minute-old seed, confirms manual **arrived just now**, live **arrived 1 sec ago** after a delayed model response, and visitor waits of **47 / 8 / 31 min** across elapsed time and reset. The fourth transfer logs but skips Slack; public actions make no model calls. Form-encoded Slack callbacks, malformed callbacks and empty POSTs all return empty 200 responses (maximum **18ms** locally), with zero provider calls; GET returns 405. Production Slack timing and Slack UI behaviour still depend on the live settings and are separate from these controlled checks.
