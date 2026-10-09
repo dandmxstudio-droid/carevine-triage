@@ -1,8 +1,22 @@
 "use client";
 import Link from "next/link";
 import { useActionState } from "react";
-import { setup, logout, type AdminResult } from "@/app/admin/actions";
-export function AdminSetup({ configured }: { configured: boolean }) {
+import {
+  setup,
+  logout,
+  testCrisisAlert,
+  type AdminResult,
+} from "@/app/admin/actions";
+export function AdminSetup({
+  configured,
+  slackReady,
+}: {
+  configured: boolean;
+  slackReady: boolean;
+}) {
+  const [alert, alertAction, alertPending] = useActionState(testCrisisAlert, {
+    message: "",
+  } as AdminResult);
   const [state, action, pending] = useActionState(setup, {
     message: "",
   } as AdminResult);
@@ -11,7 +25,7 @@ export function AdminSetup({ configured }: { configured: boolean }) {
       <div className="page-heading">
         <div>
           <h1>Demo setup</h1>
-          <p>Carevine Helpdesk · Phase 3</p>
+          <p>Carevine Helpdesk · Phase 4</p>
         </div>
         <form action={logout}>
           <button className="button">Sign out</button>
@@ -107,6 +121,19 @@ export function AdminSetup({ configured }: { configured: boolean }) {
             {state.seed.gaps} seeded gaps · {state.seed.decisions_deleted}{" "}
             Decisions deleted.
           </p>
+        )}
+      </section>
+      <section className="card">
+        <h2>Slack crisis alert</h2>
+        <p>Post the synthetic T-01 crisis alert for the demo recording.</p>
+        {!slackReady && <p>Set SLACK_WEBHOOK_URL and APP_URL in Vercel.</p>}
+        <form action={alertAction}>
+          <button className="button" disabled={alertPending || !slackReady}>
+            {alertPending ? "Sending…" : "Send test crisis alert"}
+          </button>
+        </form>
+        {alert.message && (
+          <p role={alert.error ? "alert" : "status"}>{alert.message}</p>
         )}
       </section>
       <div className="actions">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { airtable } from "@/lib/server/airtable";
 import { getSnapshot } from "@/lib/server/snapshot";
 import { logDecisions, parseBatch } from "@/lib/server/decisions";
+import { sendVisitorAlerts } from "@/lib/server/slack";
 import { loadData } from "@/lib/load-data";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
@@ -30,8 +31,15 @@ export async function POST(request: Request) {
   try {
     const snapshot = await getSnapshot();
     if (snapshot.offline) return NextResponse.json({ logged: false });
-    await logDecisions(airtable(), batch, snapshot.recordIds);
-    return NextResponse.json({ logged: true });
+    const client = airtable();
+    const saved = await logDecisions(client, batch, snapshot.recordIds);
+    const slack = await sendVisitorAlerts(
+      client,
+      batch,
+      saved,
+      snapshot.tickets,
+    );
+    return NextResponse.json({ logged: true, slack });
   } catch {
     return NextResponse.json({ logged: false });
   }

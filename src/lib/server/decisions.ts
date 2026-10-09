@@ -54,6 +54,11 @@ export function parseBatch(value: unknown, ids: string[]): LogBatch {
         event[key] = e[key];
       }
     }
+    if (
+      e.action === "sent_to_nurse" &&
+      (e.role !== "Support rep" || !event.note?.trim())
+    )
+      throw new Error("A Support rep reason is required.");
     if (e.action === "crisis_reply_sent") event.final_reply = crisisTemplate;
     if (e.draft_useful !== undefined) {
       if (!["Yes", "No"].includes(e.draft_useful))
@@ -82,12 +87,15 @@ export async function logDecisions(
   batch: LogBatch,
   recordIds: Record<string, string>,
 ) {
-  const records = batch.events.map((e) => {
+  const serverTime = Date.now();
+  const records = batch.events.map((e, index) => {
     const ticket = recordIds[e.ticket_id];
     if (!ticket) throw new Error("Unknown ticket.");
     const fields: Fields = {
       ticket: [ticket],
-      at: new Date(e.at).toISOString(),
+      at: new Date(
+        e.action === "sent_to_nurse" ? serverTime + index : e.at,
+      ).toISOString(),
       person: e.person,
       role: e.role,
       action: e.action,
@@ -103,7 +111,7 @@ export async function logDecisions(
       if (e[key] !== undefined) fields[key] = e[key];
     return { fields };
   });
-  await client.write("Decisions", records);
+  const saved = await client.write("Decisions", records);
   const gaps = batch.events
     .filter((e) => e.action === "gap_flagged" && e.gap)
     .map((e) => ({
@@ -118,4 +126,5 @@ export async function logDecisions(
       },
     }));
   await client.write("KB Gaps", gaps);
+  return saved;
 }

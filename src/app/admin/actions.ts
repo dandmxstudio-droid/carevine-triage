@@ -8,6 +8,8 @@ import { airtable } from "@/lib/server/airtable";
 import { ensureSchema, type SchemaReport } from "@/lib/server/schema";
 import { seedDemo } from "@/lib/server/demo-data";
 import { loadData } from "@/lib/load-data";
+import { createDemo } from "@/lib/demo";
+import { sendSlackAlert } from "@/lib/server/slack";
 import { demoCacheTag } from "@/lib/server/snapshot";
 export type AdminResult = {
   message: string;
@@ -79,4 +81,21 @@ export async function setup(
       error: true,
     };
   }
+}
+
+export async function testCrisisAlert(
+  _previous: AdminResult,
+): Promise<AdminResult> {
+  await requireAdmin();
+  const ticket = createDemo(loadData().tickets, Date.now()).tickets.find(
+    (t) => t.ticket_id === "T-01",
+  )!;
+  const status = await sendSlackAlert({ ticket });
+  return status === "sent"
+    ? { message: "T-01 crisis alert sent to Slack." }
+    : {
+        message:
+          "Slack alert could not be delivered. Check SLACK_WEBHOOK_URL and APP_URL in Vercel; see server logs.",
+        error: true,
+      };
 }

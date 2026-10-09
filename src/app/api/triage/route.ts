@@ -3,6 +3,7 @@ import { authorizeAdminRequest } from "@/lib/server/admin-request";
 import { getSnapshot } from "@/lib/server/snapshot";
 import { airtable } from "@/lib/server/airtable";
 import { triageTicket, recordTriage } from "@/lib/server/triage";
+import { sendSlackAlert, urgentAlert } from "@/lib/server/slack";
 import { signResult, validRunId } from "@/lib/server/test-runs";
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -43,6 +44,13 @@ export async function POST(request: Request) {
       outcome,
       snapshot.recordIds[ticketId],
     );
+    if (urgentAlert(outcome.ai)) {
+      const status = await sendSlackAlert({ ticket, result: outcome.ai });
+      if (status !== "sent")
+        outcome.warnings.push(
+          "Slack alert could not be delivered; the triage result was saved.",
+        );
+    }
     const result = {
       ...outcome,
       ticket_id: ticketId,

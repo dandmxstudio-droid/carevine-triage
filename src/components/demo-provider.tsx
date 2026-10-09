@@ -68,6 +68,7 @@ export function DemoProvider({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<Decision[]>([]);
+  const flushing = useRef(false);
   function failLogging() {
     offlineRef.current = true;
     setOffline(true);
@@ -76,8 +77,14 @@ export function DemoProvider({
   function flush() {
     if (logTimer.current) clearTimeout(logTimer.current);
     logTimer.current = null;
-    if (offlineRef.current || !pending.current.length || !sessionId.current)
+    if (
+      flushing.current ||
+      offlineRef.current ||
+      !pending.current.length ||
+      !sessionId.current
+    )
       return;
+    flushing.current = true;
     const events = pending.current.splice(0, 10);
     // keepalive allows a human action to finish logging during a reload/navigation.
     void fetch("/api/decisions", {
@@ -87,10 +94,22 @@ export function DemoProvider({
       keepalive: true,
     })
       .then(async (response) => {
-        if (!response.ok || !(await response.json()).logged) failLogging();
+        if (!response.ok) {
+          failLogging();
+          return;
+        }
+        const result = await response.json();
+        if (!result.logged) failLogging();
+        else if (result.slack === "limit") toast("Demo limit reached");
+        else if (result.slack === "failed")
+          toast("Moved to nurse. Slack alert could not be delivered.");
       })
-      .catch(failLogging);
-    if (pending.current.length) logTimer.current = setTimeout(flush, 250);
+      .catch(failLogging)
+      .finally(() => {
+        flushing.current = false;
+        if (pending.current.length && !offlineRef.current)
+          logTimer.current = setTimeout(flush, 250);
+      });
   }
   useEffect(() => {
     const n = Date.now();

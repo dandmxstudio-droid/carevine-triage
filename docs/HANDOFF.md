@@ -43,7 +43,7 @@ A web app where:
 | `/support/[ticketId]` | 2a–2f, 3a–3c | Ticket view. With a draft: 2a–2d. Sent: 2e. Send-to-nurse dialog: 2f. With no draft (handoff): 3a–3c                                                        |
 | `/nurse`              | 4a–4d        | Nurse queue: crisis banner, flagged list, selected message, claim, send back                                                                                |
 | `/nurse?ticket=[id]`  | 4a–4c        | Nurse queue with that ticket selected (the Slack alert links here)                                                                                          |
-| `/admin`              | none         | Password-protected connection status, schema check, missing-field creation and demo seeding                                                                 |
+| `/admin`              | none         | Password-protected connection status, schema check, missing-field creation, demo seeding and test crisis alert                                              |
 | `/admin/tests`        | none         | Password-protected live test runner (§12). Plain table, no design needed                                                                                    |
 
 The top nav shows "Support queue · Nurse queue" and the current person's name. Switching views is allowed (it's a demo).
@@ -128,7 +128,7 @@ For each ticket:
    - If a status/gap write fails after AI Results succeeds, show a warning and do not repeat the model call or result write. If AI Results cannot be confirmed, show the ticket as failed; a partial write may have occurred.
 8. Return the result with an eight-hour signed receipt binding it to this run and ticket. Save/publish verify server-generated receipts rather than trusting edited browser JSON.
 
-**Demo isolation:** live rows use plain model IDs and are excluded from public reads. Public queues derive baseline status/queue from their selected demo AI result, so admin live Tickets updates also remain invisible until publication. **Use these results for the demo** copies this complete run into the existing seeded/published AI Results baseline rows, updates Tickets in batches, and expires the shared cache. Historical live rows and Decisions remain. Reload and Reset demo (or open a fresh tab) to load the published baseline. No Slack is called in Phase 3.
+**Demo isolation:** live rows use plain model IDs and are excluded from public reads. Public queues derive baseline status/queue from their selected demo AI result, so admin live Tickets updates also remain invisible until publication. **Use these results for the demo** copies this complete run into the existing seeded/published AI Results baseline rows, updates Tickets in batches, and expires the shared cache. Historical live rows and Decisions remain. Reload and Reset demo (or open a fresh tab) to load the published baseline. Phase 4 posts Slack for each live result whose route is `Nurse - urgent` or priority is `urgent`, after the AI Results row is saved. Slack delivery failure adds a test warning and does not fail the saved triage result.
 
 ---
 
@@ -195,24 +195,24 @@ Label every AI-generated block "AI-generated. Review before sending."
 
 All ticket changes in this table are private browser/sessionStorage changes. Each human action appends a Decisions row with a random visitor session_id. Public actions never update shared Tickets or AI Results. Log writes are batched (up to ten rows per Airtable request).
 
-| Button                             | Screen           | Ticket change                                                                                                                         | Decisions row                                                                                                                   |
-| ---------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Approve and send                   | 2a–2d            | status = Sent                                                                                                                         | approved_as_is, or approved_edited if the text changed; final_reply                                                             |
-| Reject draft                       | 2a–2d            | Clears the draft; the textarea becomes "Your reply"                                                                                   | draft_rejected                                                                                                                  |
-| Send reply                         | 3a–3c            | status = Sent                                                                                                                         | reply_sent; final_reply. Gap checkbox checked → gap_flagged + KB Gaps row                                                       |
-| Change category                    | all ticket views | category/subcategory updated                                                                                                          | category_changed; from/to                                                                                                       |
-| Send to nurse                      | 2a–2d, 3a–3c     | Opens 2f dialog. Reason required. → queue = Nurse, status = With nurse; Slack deferred                                                | sent_to_nurse; note = reason                                                                                                    |
-| Was this draft useful? Yes / No    | 2a–2e            | none                                                                                                                                  | draft_feedback; draft_useful                                                                                                    |
-| I'm on it                          | 4a               | status = Claimed, claimed_by = Maya Brooks, RN                                                                                        | claimed                                                                                                                         |
-| Send crisis reply                  | 4a               | Opens confirmation: "Send this crisis reply to Sam?" (actual member name), exact template text, Cancel and Send. Cancel logs nothing. | crisis_reply_sent only after Send; final_reply = exact template. Banner shows "Crisis reply sent at [time] by Maya Brooks, RN." |
-| Call member / Reply in app         | 4b, 4c           | Status line under buttons: "Call logged at [time] by Maya Brooks, RN." / "Reply sent at [time] by Maya Brooks, RN."                   | call_logged / reply_sent; nurse final_reply                                                                                     |
-| Not clinical: send back to support | 4b–4d            | queue = Support, status = Needs rep; nurse picks the new category                                                                     | sent_back_to_support; from/to. Show 4d confirmation + Undo (10 s)                                                               |
+| Button                             | Screen               | Ticket change                                                                                                                         | Decisions row                                                                                                                   |
+| ---------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Approve and send                   | 2a–2d                | status = Sent                                                                                                                         | approved_as_is, or approved_edited if the text changed; final_reply                                                             |
+| Reject draft                       | 2a–2d                | Clears the draft; the textarea becomes "Your reply"                                                                                   | draft_rejected                                                                                                                  |
+| Send reply                         | 3a–3c                | status = Sent                                                                                                                         | reply_sent; final_reply. Gap checkbox checked → gap_flagged + KB Gaps row                                                       |
+| Change category                    | support ticket views | category/subcategory updated                                                                                                          | category_changed; from/to                                                                                                       |
+| Send to nurse                      | 2a–2d, 3a–3c         | Opens 2f dialog. Reason required. → queue = Nurse, status = With nurse; public Slack alert subject to three-attempt session limit     | sent_to_nurse; note = reason                                                                                                    |
+| Was this draft useful? Yes / No    | 2a–2e                | none                                                                                                                                  | draft_feedback; draft_useful                                                                                                    |
+| I'm on it                          | 4a                   | status = Claimed, claimed_by = Maya Brooks, RN                                                                                        | claimed                                                                                                                         |
+| Send crisis reply                  | 4a                   | Opens confirmation: "Send this crisis reply to Sam?" (actual member name), exact template text, Cancel and Send. Cancel logs nothing. | crisis_reply_sent only after Send; final_reply = exact template. Banner shows "Crisis reply sent at [time] by Maya Brooks, RN." |
+| Call member / Reply in app         | 4b, 4c               | Status line under buttons: "Call logged at [time] by Maya Brooks, RN." / "Reply sent at [time] by Maya Brooks, RN."                   | call_logged / reply_sent; nurse final_reply                                                                                     |
+| Not clinical: send back to support | 4b–4d                | queue = Support, status = Needs rep; nurse picks the new category                                                                     | sent_back_to_support; from/to. Show 4d confirmation + Undo (10 s)                                                               |
 
 After "Approve and send" or "Send reply," show the 2e state: "Reply sent to [first name]. Sent at [time] by Julia Lee. The ticket is now closed." + "Next ticket".
 
 Undo restores only that visitor's previous nurse ticket state and appends `send_back_undone`.
 
-**Demo only:** nothing is actually sent to anyone. Sends and Call member keep the small toast: "Demo: logged, not sent." When Airtable logging fails, the offline note makes clear that actions were not logged.
+**Demo only:** member replies and calls are simulated; Slack alerts are real. Sends and Call member keep the small toast: "Demo: logged, not sent." When Airtable logging fails, the offline note makes clear that actions were not logged.
 
 **Crisis reply template (exact text):** "We're here for you. If you're in immediate danger, call 911. You can call or text 988 at any time to reach the Suicide and Crisis Lifeline. A Carevine nurse is reaching out to you now."
 
@@ -220,7 +220,9 @@ Undo restores only that visitor's previous nurse ticket state and appends `send_
 
 ## 10. Slack alert (#nurse-alerts, incoming webhook)
 
-Match artboard 5. No member name, no message text.
+Match artboard 5. Implemented in server-only `src/lib/server/slack.ts`, using `SLACK_WEBHOOK_URL` and `APP_URL` from Vercel. No member name, subject or message text is included. Reasons are scrubbed too: remove member names, personal details, quoted text, flagged crisis phrases and copied message excerpts. Use plain-text Block Kit sections to avoid mentions or formatting from untrusted reasons. Clinical topics come from a fixed safe mapping, never the member's subject.
+
+Each message has an **Open in nurse queue** Block Kit URL button pointing to `APP_URL/nurse?ticket=<id>`. Deep links select that ticket even in a fresh visitor sandbox whose baseline still places it in Support. Claiming then moves it into that nurse visitor's own queue. Shared Tickets remain untouched by public actions.
 
 ```
 🔴 URGENT · Crisis language · T-01 · arrived 2 min ago
@@ -228,23 +230,33 @@ Reason: crisis language detected in a member message. A nurse needs to respond n
 <https://APP_URL/nurse?ticket=T-01|Open in nurse queue>
 ```
 
-For clinical urgent: "🟠 Clinical · CV-10004 · Low reading and symptoms" + the reason + link. Use Slack Block Kit with a button for the link.
+For clinical urgent: "🟠 Clinical · CV-10004 · Low reading and symptoms" + the sanitized reason + link.
+
+**When alerts fire:**
+
+- **Live `/admin/tests` runs:** every result with route `Nurse - urgent` **or** priority `urgent`, after its history row is saved. No `[Demo]` prefix. No alert for ordinary nurse routes unless urgent. Running tests again posts new alerts; Save run and Use these results for the demo do not post or call the model.
+- **Public Send to nurse:** every confirmed Support rep transfer appends its `sent_to_nurse` Decision first, then posts `[Demo] 🟠 Sent to nurse by support rep · <id>` with the sanitized rep reason and nurse button. Any visitor may use this; the first three transfers per UUID session are eligible. The fourth and later transfers still move the private ticket and save Decisions but skip Slack and show **Demo limit reached**.
+- **`/admin` → Send test crisis alert:** password-protected server action posts T-01 using its synthetic crisis result and a fresh two-minute arrival time. It makes no OpenAI or Airtable calls and leaves public state unchanged. Intended for recording the demo video.
+
+**Limit and failure behavior:** transfer timestamps are assigned by the server. After a batch with transfers is logged, one additional Airtable read selects the first three Support rep `sent_to_nurse` rows for that session, ordered by `at` (`maxRecords=3`). Only those newly saved rows may post. Browser log batches run sequentially. The durable history survives reload, Reset demo and server cold starts. Failed Slack attempts consume an allowance; a new tab/session has its own allowance. Admin reseeding deletes Decisions and therefore clears allowances; do not reseed just to test Phase 4. If Airtable logging or quota reads fail, skip public Slack safely. Successful Decisions remain saved if the quota read fails.
+
+Slack has a five-second timeout, no automatic retry, and no redirect following. Missing configuration, non-2xx responses and transport errors are logged using ticket ID/status only, never webhook URL, payload or exception contents. They do not undo transfers or saved triage results. Public delivery failure shows a notice; live tests show a warning; the manual admin test shows its delivery status. Browser code receives neither Slack credentials nor webhook payloads. Only a manual action/request can trigger an alert; public browsing, reset, demo cache loading, admin schema checks, seeding and result publication never post Slack.
 
 ---
 
 ## 11. Phase 2 demo controls, caching and offline behavior
 
 - **Private sandboxes:** each visitor has a random UUID session_id, persisted for their tab. All queue status, claim, draft, category, feedback and send-back changes live in sessionStorage. Visitors do not change each other's queues.
-- **Reads:** server-only Airtable REST client. Shared Next.js Data Cache, five-minute revalidation, keyed by base. A normal cache miss reads Tickets and AI Results (two calls at the seeded size). Pagination uses up to 100 records per page. No polling, per-action ticket reads or background refresh timers. No Airtable reads are made at build time or merely opening `/admin`.
+- **Reads:** server-only Airtable REST client. Shared Next.js Data Cache, five-minute revalidation, keyed by base. A normal cache miss reads Tickets and AI Results (two calls at the seeded size). Pagination uses up to 100 records per page. No polling, per-action ticket reads or background refresh timers. Phase 4 reads at most three Decisions for a batch containing a Support rep transfer to check the Slack allowance. No Airtable reads are made at build time or merely opening `/admin`.
 - **"Updated [time]":** snapshot load time. Waiting times use received_at and a local clock.
 - **"Reset demo":** clear only that visitor's sandbox and local action/status history; restore its loaded baseline results and local waiting times. Keep the session_id. No Airtable read, write, delete, AI call or action log is triggered by reset. Existing Airtable logs remain intact.
-- **Logging:** public `POST /api/decisions` validates up to ten actions, resolves linked ticket record IDs from the cached server snapshot, and writes Decisions in batches of at most ten. Checked gap flags append an additional gap_flagged Decision and KB Gaps row with the same session_id. Actions within a short 250ms window share a batch; keepalive handles navigation/reload. No automatic retry after failed or ambiguous writes, avoiding duplicate logs and excess calls. A partial failure may have already saved Decisions before a KB Gaps write failed.
+- **Logging:** public `POST /api/decisions` validates up to ten actions, resolves linked ticket record IDs from the cached server snapshot, and writes Decisions in batches of at most ten. Checked gap flags append an additional gap_flagged Decision and KB Gaps row with the same session_id. Actions within a short 250ms window share a batch; browser batches are sent sequentially, and keepalive allows an in-flight log request to finish during navigation/reload. No automatic retry after failed or ambiguous writes, avoiding duplicate logs and excess calls. A partial failure may have already saved Decisions before a KB Gaps write failed.
 - **Offline:** missing configuration/data, invalid records, failed reads/writes, or Airtable 429 fall back to the mock baseline for server reads. Existing visitor changes remain usable if logging fails. Show: "Demo running offline. Actions aren't being logged." Stop logging for that mounted sandbox after failure; a later page load can recover when cached data becomes available. Offline snapshots are cached too, preventing repeated failure calls. Reset makes no connection attempt.
 - **API budget:** only request-driven cache misses and human actions use calls; admin schema/seeding is manual. Do not guarantee fewer than 1,000 monthly calls under arbitrary traffic. Five-minute cache reuse and batching minimize use; a reached allowance produces the offline demo.
 - **Admin:** `/admin` and every `/admin/*` page require ADMIN_PASSWORD. Sign-in uses a signed, eight-hour, httpOnly cookie (Secure in production, SameSite=Strict); every schema/seed action separately validates it. No password or Airtable token reaches client code. Sign out clears the cookie; changing ADMIN_PASSWORD invalidates sessions.
 - **Schema check:** manual button fetches base metadata, creates only missing fields, and lists missing tables/fields and errors; type differences are shown as information only. Missing fields are created with the types/options in §4. Do not alter existing field types. Stop further schema writes after access-denied or rate-limit responses. Seed is blocked only for missing fields/tables or errors, including a ticket link pointing to the wrong table. Compatible text types and Test Runs autonumber IDs do not produce a "Needs attention" state.
 - **Seed demo data (admin only):** recheck schema, upsert all 16 CSV tickets by ticket_id, set received_at = now minus demo_wait_min and queue/status from §5 step 7, clear claimed_by. Create/update one Phase 1 mock demo AI Results row per ticket and remove duplicate demo rows for those tickets. Preserve unprefixed live test history. Create/update Triage Tool KB Gaps from results with kb_gap, leaving visitor gaps intact. Delete existing Decisions rows after seed writes complete. All record writes/deletes are batched up to ten. Clear the shared snapshot cache after success. Existing visitor sandboxes remain private; open a fresh tab or reload and Reset demo to use the newly seeded baseline.
-- Phase 3 adds admin-only OpenAI triage and explicit baseline publication (§5/§12). Public reads, resets and actions still never call the model. Slack and additional rate/spending guardrails remain later phases.
+- Phase 3 adds admin-only OpenAI triage and explicit baseline publication (§5/§12). Public reads, resets and actions still never call the model. Phase 4 adds server-only Slack and the three-attempt public transfer allowance (§10). Broader rate/spending guardrails remain Phase 5.
 
 ---
 
@@ -282,9 +294,9 @@ OPENAI_API_KEY=          # server-only; already configured in Vercel
 TRIAGE_MODEL=            # optional; defaults to gpt-6-luna (Structured Outputs, reasoning none, temperature 0)
 AIRTABLE_TOKEN=          # personal access token: data.records:read, data.records:write, schema.bases:read, schema.bases:write
 AIRTABLE_BASE_ID=
-SLACK_WEBHOOK_URL=
+SLACK_WEBHOOK_URL=       # server-only Slack incoming webhook; already configured in Vercel
 ADMIN_PASSWORD=
-APP_URL=                 # e.g. https://carevine-triage.vercel.app
+APP_URL=                 # HTTPS public app origin; already configured in Vercel, e.g. https://carevine-triage.vercel.app
 ```
 
 Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings → Environment Variables.
@@ -296,7 +308,7 @@ Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings →
 1. **Screens with mock data.** Next.js app with all pages from §3, matching `design/Screens.dc.html`, using the 16 tickets from the CSV and hardcoded fake AI results. No APIs. _Check: click through all flows._
 2. **Airtable (Phase 2).** Server-only client; password-protected /admin schema check and seed; shared five-minute reads; private visitor sessionStorage sandbox; batched Decisions/KB Gaps with session_id; zero-call reset and offline fallback. Fix preview pills, crisis-first queues, crisis confirmation and nurse action statuses. _Check: seed from /admin, approve a ticket, verify the linked Decision/session_id in Airtable while another visitor’s queue stays unchanged._
 3. **Triage Tool (Phase 3).** Admin-only OpenAI wrapper, strict schema, redaction, one validation retry, safety net, live Airtable history, sequential `/admin/tests`, manual draft review, Save run and explicit demo publication. No Slack. _Check: run all 16 on Vercel, verify the three required criteria, then have Dan judge at least 6 of 7 drafts accurate._
-4. **Actions and Slack.** Every button in §9 and the Slack alert in §10. _Check: Send to nurse posts to Slack._
+4. **Actions and Slack (Phase 4 implemented).** Server-only private Block Kit alerts for urgent live tests and public Support rep transfers, three public attempts per visitor session, password-protected T-01 test button, nurse deep-link selection, and verified §9 Decision writes. _Check: follow §18 on Vercel; no reseeding required._
 5. **Guardrails and deploy.** Rate limits, admin password, error states, Vercel deploy. _Check: open the live URL on a phone._
 
 ---
@@ -306,7 +318,7 @@ Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings →
 - [ ] All 18 artboards have a working page or state
 - [ ] Test runner passes all required criteria, and at least 6 of 7 drafts are accurate
 - [ ] Crisis ticket triggers a Slack alert within 10 seconds of a live run
-- [ ] Every button writes a Decisions row
+- [x] Every §9 confirmed action writes its Decisions row (verified with controlled browser/Airtable responses; cancellations and navigation do not log)
 - [ ] No API key in browser code (check the Network tab)
 - [ ] Live on Vercel; Reset demo works with no API calls
 - [ ] Keyboard-only walkthrough works; focus is visible; buttons are at least 44px tall
@@ -337,3 +349,19 @@ Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings →
 Local verification uses controlled model/Airtable responses for error and safety coverage. Production model accuracy and Dan's manual judgments must be checked on the deployed app; no live Vercel credentials are available in the development workspace.
 
 Model/API references: [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [parameter compatibility](https://developers.openai.com/api/docs/guides/latest-model).
+
+---
+
+## 18. Exact Phase 4 checks after deployment
+
+1. Keep the existing `SLACK_WEBHOOK_URL` and HTTPS `APP_URL` set in Vercel. Wait for the main deployment to finish. No schema changes or reseeding are needed.
+2. Sign in at `/admin`. Click **Send test crisis alert**. Wait for **T-01 crisis alert sent to Slack.** In #nurse-alerts, confirm the red urgent T-01 heading, arrival time, reason, no member name/message, and **Open in nurse queue** button. Click it and confirm T-01 is selected. Use this button for the video; it costs no model calls.
+3. Open `/admin/tests` and click **Run all 16**. Every result with route `Nurse - urgent` or priority `urgent` posts an alert. With expected classifications, this includes T-01 (crisis), CV-10004 (low reading and symptoms) and CV-10018 (high reading). Confirm each links to the right selected ticket. Non-urgent nurse tickets do not post. Any Slack failure appears in the ticket's warning without discarding its AI Results row.
+4. In a fresh public tab, open a Support ticket and click **Send to nurse**, enter a reason and confirm. Verify a `[Demo]` orange Support rep alert with the sanitized reason and nurse button. Verify the `sent_to_nurse` row in Airtable Decisions includes the linked ticket, Julia Lee, Support rep, reason and tab session_id. Repeat on two other Support tickets; these are the second and third alerts. Transfer a fourth: expect **Demo limit reached**, no fourth Slack post, and a fourth Decisions row. Reload or Reset demo and transfer again: the allowance remains exhausted. A fresh tab has its own allowance.
+5. Open the alert link in a fresh browser/tab and verify the ticket ID is selected even if that visitor's baseline still places it in Support. Click **I'm on it** to claim it in the nurse visitor's private sandbox.
+6. Check §9 logging in Airtable: approve unchanged/edited drafts, reject a draft, manually send a reply, change category, transfer to nurse, mark draft useful Yes/No, claim, confirm a crisis reply, Call member, Reply in app, send back to support, and Undo within ten seconds. Each confirmed action logs the corresponding action; checked gap flags add `gap_flagged` and a KB Gaps row. Canceling the crisis dialog writes nothing. No missing action handlers were found; Phase 4 also serializes log batches and requires a nonempty Support rep reason at the server boundary.
+7. Public browsing and Reset demo still make zero model calls. Slack failure logs are available in Vercel server logs; delivery failures do not undo the private ticket action or successful Decisions writes. Do not share webhook credentials in screenshots or recordings.
+
+**Local verification:** 34 automated tests and the production build pass. A controlled browser run exercises all 13 Decision action types (including both feedback choices, edited/unchanged approval, gap flag, crisis cancel/confirm and nurse Undo), all 16 sequential live tests, manual crisis success/failure, three public alerts, fourth/reset limits and fresh-tab deep links. Provider requests are intercepted with synthetic responses; actual Vercel-to-Slack delivery must be checked using steps above.
+
+Slack references: [Incoming webhooks](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) and [Block Kit URL buttons](https://docs.slack.dev/reference/block-kit/block-elements/button-element/).

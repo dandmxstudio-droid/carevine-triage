@@ -29,7 +29,10 @@ export function NurseView() {
     .filter((t) => t.queue === "Nurse" && t.status !== "Sent")
     .sort(nurseSort);
   const requested = params.get("ticket");
-  const selected = rows.find((t) => t.ticket_id === requested) || rows[0];
+  // A Slack recipient has their own sandbox. Open the requested ticket even
+  // when its transfer only exists in the sending visitor's private queue.
+  const selected =
+    state.tickets.find((t) => t.ticket_id === requested) || rows[0];
   const crisis = rows.find((t) => t.ai.crisis);
   const [dialog, setDialog] = useState<"return" | "reply" | "crisis" | null>(
     null,
@@ -76,7 +79,7 @@ export function NurseView() {
   function claim(t: Ticket) {
     update(
       t.ticket_id,
-      { status: "Claimed", claimed_by: "Maya Brooks, RN" },
+      { queue: "Nurse", status: "Claimed", claimed_by: "Maya Brooks, RN" },
       "claimed",
       "Nurse",
     );
@@ -124,6 +127,7 @@ export function NurseView() {
     returned &&
     state.tickets.find((t) => t.ticket_id === returned.ticket.ticket_id)
       ?.queue === "Support";
+  const nextTicket = showReturned ? rows[0] : selected;
   return (
     <div className="app">
       <Header nurse />
@@ -227,13 +231,13 @@ export function NurseView() {
                   <strong>Support queue · {returned.to}</strong>
                 </div>
                 <div className="actions" style={{ paddingTop: 4 }}>
-                  {selected && (
+                  {nextTicket && (
                     <button
                       className="button primary"
-                      onClick={() => select(selected.ticket_id)}
+                      onClick={() => select(nextTicket.ticket_id)}
                     >
                       Open next:{" "}
-                      <span className="mono">{selected.ticket_id}</span>
+                      <span className="mono">{nextTicket.ticket_id}</span>
                     </button>
                   )}
                   <button
