@@ -38,7 +38,8 @@ export function AdminSetup({ configured }: { configured: boolean }) {
         <p>
           Compare all five tables with the handoff and create missing fields,
           including session_id on Decisions and KB Gaps. Existing field types
-          stay as they are.
+          stay as they are. Type differences are information only. Only missing
+          fields or errors block seeding.
         </p>
         <form action={action}>
           <button
@@ -60,7 +61,7 @@ export function AdminSetup({ configured }: { configured: boolean }) {
               [
                 ["Created", state.report.created],
                 ["Missing", state.report.missing],
-                ["Type mismatches", state.report.mismatches],
+                ["Type differences (info)", state.report.differences],
                 ["Errors", state.report.errors],
               ] as [string, string[]][]
             ).map(([label, list]) => (

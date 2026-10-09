@@ -57,7 +57,7 @@ export async function setup(
     if (!report.ready)
       return {
         message:
-          "Schema needs attention. Existing field types were not changed. Resolve the listed issues, then check again.",
+          "Schema needs attention. Create missing fields or resolve the listed errors, then check again. Type differences do not block seeding.",
         report,
         error: true,
       };

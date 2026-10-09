@@ -7,7 +7,11 @@ import {
   type RecordRow,
   type Fields,
 } from "../src/lib/server/airtable-core";
-import { expectedSchema, ensureSchema } from "../src/lib/server/schema";
+import {
+  expectedSchema,
+  ensureSchema,
+  compatibleType,
+} from "../src/lib/server/schema";
 import {
   readSnapshot,
   seedDemo,
@@ -91,7 +95,7 @@ function fakeBase() {
     ),
   };
 }
-test("schema creates only missing fields and reports type/link mismatches without changing them", async () => {
+test("schema creates missing fields and accepts intentional text types without changing them", async () => {
   const f = fakeBase();
   const decisions = f.tables.find((t) => t.name === "Decisions")!;
   decisions.fields = decisions.fields.filter(
@@ -103,12 +107,70 @@ test("schema creates only missing fields and reports type/link mismatches withou
   gap.type = "singleLineText";
   const report = await ensureSchema(f.client);
   assert.deepEqual(report.created, ["Decisions.session_id"]);
-  assert.equal(report.ready, false);
-  assert.equal(report.mismatches.length, 1);
+  assert.equal(report.ready, true);
+  assert.equal(report.differences.length, 1);
+  assert.match(report.differences[0], /compatible/);
   assert.equal(gap.type, "singleLineText");
   assert.equal(f.calls.filter((c) => c.method === "PATCH").length, 0);
   gap.type = "multilineText";
   assert.equal((await ensureSchema(f.client)).ready, true);
+});
+test("text compatibility is symmetric and Test Runs accepts autonumber IDs", () => {
+  for (const alternative of ["singleSelect", "multilineText"]) {
+    assert.equal(
+      compatibleType("Tickets", "status", "singleLineText", alternative),
+      true,
+    );
+    assert.equal(
+      compatibleType("Tickets", "status", alternative, "singleLineText"),
+      true,
+    );
+  }
+  assert.equal(
+    compatibleType("Test Runs", "id", "singleLineText", "autoNumber"),
+    true,
+  );
+  assert.equal(
+    compatibleType("Test Runs", "id", "autoNumber", "singleLineText"),
+    true,
+  );
+});
+test("type differences do not block seeding, but missing fields and real errors do", async () => {
+  const f = fakeBase();
+  for (const table of f.tables)
+    for (const field of table.fields) {
+      if (["singleSelect", "multilineText"].includes(field.type))
+        field.type = "singleLineText";
+    }
+  f.tables
+    .find((t) => t.name === "Test Runs")!
+    .fields.find((f) => f.name === "id")!.type = "autoNumber";
+  const report = await ensureSchema(f.client);
+  assert.equal(report.ready, true);
+  assert.ok(report.differences.length > 10);
+  assert.deepEqual(report.errors, []);
+  assert.deepEqual(report.created, []);
+  assert.equal((await seedDemo(f.client, seeds)).tickets, 16);
+  // Even unrelated type differences are informational, as requested.
+  f.tables
+    .find((t) => t.name === "Test Runs")!
+    .fields.find((f) => f.name === "notes")!.type = "number";
+  assert.equal((await ensureSchema(f.client)).ready, true);
+  const link = f.tables
+    .find((t) => t.name === "Decisions")!
+    .fields.find((field) => field.name === "ticket")!;
+  link.options = { linkedTableId: "wrong-table" };
+  const linkError = await ensureSchema(f.client);
+  assert.equal(linkError.ready, false);
+  assert.match(linkError.errors[0], /must link to Tickets/);
+  link.options = { linkedTableId: "tblTickets" };
+  f.tables.splice(
+    f.tables.findIndex((t) => t.name === "KB Gaps"),
+    1,
+  );
+  const missing = await ensureSchema(f.client);
+  assert.equal(missing.ready, false);
+  assert.deepEqual(missing.missing, ["Table: KB Gaps"]);
 });
 test("seeding upserts 16 tickets, replaces duplicate mocks, preserves visitor gaps and clears Decisions in batches", async () => {
   const f = fakeBase(),

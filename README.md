@@ -20,7 +20,7 @@ Development: `http://localhost:3000`. Production: `npm run build` followed by `n
 
 The server reads Tickets and AI Results from Airtable through a shared five-minute cache. Public queue/status changes stay private in tab-local sessionStorage. Human actions append batched Decisions and checked KB Gaps with a random session_id. Reset restores only the visitor sandbox without Airtable calls. Missing or failed Airtable data uses the 16 CSV/mock tickets and an offline note. Fonts are self-hosted and supplied brand PNGs are unmodified.
 
-`/admin` and `/admin/tests` use ADMIN_PASSWORD and a signed httpOnly cookie. The admin schema check creates missing fields and reports type mismatches; seeding upserts 16 tickets and mock results and clears Decisions. See [HANDOFF §16](docs/HANDOFF.md#16-admin-setup-steps-after-phase-2-deployment) for exact setup steps and token permissions. Claude, Slack and live triage remain later phases.
+`/admin` and `/admin/tests` use ADMIN_PASSWORD and a signed httpOnly cookie. The admin schema check creates missing fields and shows type differences as information without blocking seeding; seeding upserts 16 tickets and mock results and clears Decisions. See [HANDOFF §16](docs/HANDOFF.md#16-admin-setup-steps-after-phase-2-deployment) for exact setup steps and token permissions. Claude, Slack and live triage remain later phases.
 
 Dynamic data supersedes the design placeholders: names, ticket text, IDs, article titles, queue counts, and priorities follow the CSV and prompt rules. The CSV login case uses a conservative low-confidence mock to expose the designed review state without inventing another member question. No source-only member-since dates are invented.
 

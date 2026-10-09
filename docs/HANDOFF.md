@@ -52,58 +52,58 @@ The top nav shows "Support queue · Nurse queue" and the current person's name. 
 
 ## 4. Airtable base: "Carevine Helpdesk"
 
-The base already has these four tables plus Test Runs. The `/admin` schema check creates missing fields only. Existing field types are never changed; mismatches are listed and block seeding until Dan resolves them. Missing tables are listed for Dan to create.
+The base already has these four tables plus Test Runs. The `/admin` schema check creates missing fields only. Existing field types are never changed. Type differences are information only and do not block seeding. Only missing fields/tables or errors block seeding. Missing tables are listed for Dan to create.
 
-API type names below define the Phase 2 contract. `article_ids` and `flagged_phrases` are JSON arrays serialized into long text; `raw_json` is the complete mock result. Single-select choices can be added by Airtable typecasting during record writes. Linked `ticket` fields must point to Tickets.
+The types below include the base's intentional text storage. `singleLineText` is compatible with both `singleSelect` and `multilineText`, in either direction. Existing select/long-text fields are also preserved. `Test Runs.id` uses `autoNumber`; a legacy `singleLineText` ID is also accepted. Other type differences are listed as information, not as setup issues. Reference types in code are defaults for creating missing fields only. `article_ids` and `flagged_phrases` are JSON arrays serialized into text fields (single line or long text); `raw_json` is the complete mock result. Single-select choices can be added by Airtable typecasting during record writes. Linked `ticket` fields must point to Tickets.
 
 ### Tickets (seed from `carevine_triage_demo_tickets.csv`)
 
-| Field             | Type                       | Notes                                                                                                  |
-| ----------------- | -------------------------- | ------------------------------------------------------------------------------------------------------ |
-| ticket_id         | Single line text (primary) | CV-10009, T-01…                                                                                        |
-| member_first_name | Single line text           | Shown in the UI; never sent to the Triage Tool                                                         |
-| program           | Single select              | Diabetes, Hypertension                                                                                 |
-| employer_client   | Single line text           |                                                                                                        |
-| channel           | Single select              | app_message, email, web_form                                                                           |
-| subject           | Single line text           |                                                                                                        |
-| message           | Long text                  | Already de-identified ([NAME], [DOB], [MEMBER ID] tags)                                                |
-| demo_wait_min     | Number                     | Minutes the ticket has been "waiting" when the demo resets                                             |
-| received_at       | Date/time                  | Set by admin seeding: now minus demo_wait_min. Visitor resets only adjust the private browser sandbox. |
-| status            | Single select              | New, Draft ready, Needs rep, With nurse, Claimed, Sent, Closed                                         |
-| queue             | Single select              | Support, Nurse                                                                                         |
-| claimed_by        | Single line text           |                                                                                                        |
-| expected_route    | Single line text           | Answer key. Never sent to the Triage Tool                                                              |
-| expected_result   | Long text                  | Answer key. Never sent to the Triage Tool                                                              |
+| Field             | Type                             | Notes                                                                                                  |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| ticket_id         | Single line text (primary)       | CV-10009, T-01…                                                                                        |
+| member_first_name | Single line text                 | Shown in the UI; never sent to the Triage Tool                                                         |
+| program           | Single line text / single select | Diabetes, Hypertension                                                                                 |
+| employer_client   | Single line text                 |                                                                                                        |
+| channel           | Single line text / single select | app_message, email, web_form                                                                           |
+| subject           | Single line text                 |                                                                                                        |
+| message           | Single line text / long text     | Already de-identified ([NAME], [DOB], [MEMBER ID] tags)                                                |
+| demo_wait_min     | Number                           | Minutes the ticket has been "waiting" when the demo resets                                             |
+| received_at       | Date/time                        | Set by admin seeding: now minus demo_wait_min. Visitor resets only adjust the private browser sandbox. |
+| status            | Single line text / single select | New, Draft ready, Needs rep, With nurse, Claimed, Sent, Closed                                         |
+| queue             | Single line text / single select | Support, Nurse                                                                                         |
+| claimed_by        | Single line text                 |                                                                                                        |
+| expected_route    | Single line text                 | Answer key. Never sent to the Triage Tool                                                              |
+| expected_result   | Single line text / long text     | Answer key. Never sent to the Triage Tool                                                              |
 
 ### AI Results (one seeded mock row per ticket; future live runs may add rows)
 
 - `ticket`: link to Tickets (`multipleRecordLinks`)
 - `run_at`: Date/time (`dateTime`); `model`: single line text; `latency_ms`: integer number
 - `crisis`, `valid_json`, `safety_override`: checkbox
-- Single selects: `clinical` (yes/no/unsure), `category` (app/device/billing/scheduling), `priority` (urgent/high/normal/low), `route` (Nurse - urgent/Nurse/Member Support/Member Support - Billing lead), `confidence` (high/medium/low), `language` (en/es), `member_mood` (calm/frustrated/upset)
+- Text values (`singleLineText` or `singleSelect`): `clinical` (yes/no/unsure), `category` (app/device/billing/scheduling), `priority` (urgent/high/normal/low), `route` (Nurse - urgent/Nurse/Member Support/Member Support - Billing lead), `confidence` (high/medium/low), `language` (en/es), `member_mood` (calm/frustrated/upset)
 - `subcategory`: single line text
-- Long text: `article_ids`, `draft_reply`, `handoff_note`, `kb_gap`, `flagged_phrases`, `reason`, `raw_json`
+- Text (`singleLineText` or `multilineText`): `article_ids`, `draft_reply`, `handoff_note`, `kb_gap`, `flagged_phrases`, `reason`, `raw_json`
 
 ### Decisions (one row per human action)
 
 - `ticket`: link to Tickets; `at`: Date/time
 - `person`, `session_id`: single line text
-- `role`: single select (Support rep/Nurse)
-- `action`: single select (approved_as_is, approved_edited, draft_rejected, reply_sent, category_changed, sent_to_nurse, claimed, crisis_reply_sent, call_logged, sent_back_to_support, gap_flagged, draft_feedback, send_back_undone)
-- Long text: `from_value`, `to_value`, `note`, `final_reply`
-- `draft_useful`: single select (Yes/No/blank)
+- `role`: single line text or single select (Support rep/Nurse)
+- `action`: single line text or single select (approved_as_is, approved_edited, draft_rejected, reply_sent, category_changed, sent_to_nurse, claimed, crisis_reply_sent, call_logged, sent_back_to_support, gap_flagged, draft_feedback, send_back_undone)
+- Text (`singleLineText` or `multilineText`): `from_value`, `to_value`, `note`, `final_reply`
+- `draft_useful`: single line text or single select (Yes/No/blank)
 
 ### KB Gaps
 
 - `ticket`: link to Tickets; `at`: Date/time
-- `article_ids`, `gap`: long text
+- `article_ids`, `gap`: single line text or long text
 - `flagged_by`, `session_id`: single line text
-- `status`: single select (New/Fixed)
+- `status`: single line text or single select (New/Fixed)
 - Seeded gaps use `flagged_by = Triage Tool` and no session_id. Visitor gap flags use the person's name and their session_id.
 
 ### Test Runs
 
-`id`: single line text; `run_at`: Date/time; `passed`, `failed`: integer number; `notes`: long text. Checked by Phase 2 setup; saving test runs and live triage remain Phase 3.
+`id`: autonumber (`autoNumber`, primary; legacy single line text also accepted); `run_at`: Date/time; `passed`, `failed`: integer number; `notes`: single line text or long text. Checked by Phase 2 setup; saving test runs and live triage remain Phase 3.
 
 ---
 
@@ -235,7 +235,7 @@ For clinical urgent: "🟠 Clinical · CV-10004 · Low reading and symptoms" + t
 - **Offline:** missing configuration/data, invalid records, failed reads/writes, or Airtable 429 fall back to the mock baseline for server reads. Existing visitor changes remain usable if logging fails. Show: "Demo running offline. Actions aren't being logged." Stop logging for that mounted sandbox after failure; a later page load can recover when cached data becomes available. Offline snapshots are cached too, preventing repeated failure calls. Reset makes no connection attempt.
 - **API budget:** only request-driven cache misses and human actions use calls; admin schema/seeding is manual. Do not guarantee fewer than 1,000 monthly calls under arbitrary traffic. Five-minute cache reuse and batching minimize use; a reached allowance produces the offline demo.
 - **Admin:** `/admin` and every `/admin/*` page require ADMIN_PASSWORD. Sign-in uses a signed, eight-hour, httpOnly cookie (Secure in production, SameSite=Strict); every schema/seed action separately validates it. No password or Airtable token reaches client code. Sign out clears the cookie; changing ADMIN_PASSWORD invalidates sessions.
-- **Schema check:** manual button fetches base metadata, creates only missing fields, and lists missing tables, type/link mismatches and permission errors. Missing fields are created with the types/options in §4. Do not alter existing field types. Stop further schema writes after access-denied or rate-limit responses. Seed is blocked until the report is ready.
+- **Schema check:** manual button fetches base metadata, creates only missing fields, and lists missing tables/fields and errors; type differences are shown as information only. Missing fields are created with the types/options in §4. Do not alter existing field types. Stop further schema writes after access-denied or rate-limit responses. Seed is blocked only for missing fields/tables or errors, including a ticket link pointing to the wrong table. Compatible text types and Test Runs autonumber IDs do not produce a "Needs attention" state.
 - **Seed demo data (admin only):** recheck schema, upsert all 16 CSV tickets by ticket_id, set received_at = now minus demo_wait_min and queue/status from §5 step 7, clear claimed_by. Create/update one Phase 1 mock AI Results row per ticket and remove duplicates for those tickets. Create/update Triage Tool KB Gaps from results with kb_gap, leaving visitor gaps intact. Delete existing Decisions rows after seed writes complete. All record writes/deletes are batched up to ten. Clear the shared snapshot cache after success. Existing visitor sandboxes remain private; open a fresh tab or reload and Reset demo to use the newly seeded baseline.
 - No live re-run, Claude call, Slack alert, or triage endpoint is added in Phase 2. Those remain later phases. The future triage rate/spending limits remain as originally planned.
 
@@ -304,7 +304,7 @@ Add `.env.local` to `.gitignore`. Put the same values in Vercel → Settings →
 
 1. Open `/admin` on the deployed Vercel app and sign in with the ADMIN_PASSWORD already set there.
 2. Click **Check schema & create missing fields**. It verifies the connection and adds missing fields, including both session_id fields.
-3. If the report lists a type/link mismatch, correct that field in Airtable yourself, then run the check again. The app never changes existing field types. If access is denied creating fields, ensure the PAT has schema.bases:write plus schema.bases:read, data.records:read and data.records:write, and access to Carevine Helpdesk. Update the Vercel token/redeploy if needed.
+3. Type differences are information only; leave the base's intentional types as they are. Only resolve listed missing fields/tables or errors, then run the check again. A linked ticket field must point to Tickets. The app never changes existing field types. If access is denied creating fields, ensure the PAT has schema.bases:write plus schema.bases:read, data.records:read and data.records:write, and access to Carevine Helpdesk. Update the Vercel token/redeploy if needed.
 4. Once it says **Ready to seed**, click **Seed demo data** once. Wait for **16 tickets · 16 AI results** and the gap/deleted-Decision counts. The seed clears old Decisions, so don't run it when you want to keep those logs.
 5. Open the support queue in a fresh tab (or reload then **Reset demo**), approve a draft and wait briefly. In Airtable Decisions, verify approved_as_is/approved_edited, linked ticket, final_reply and session_id. Another fresh visitor still sees the baseline queue.
 6. Reset demo restores only your sandbox; Airtable logs remain. `/admin/tests` is also protected and still runs the local mock checks.

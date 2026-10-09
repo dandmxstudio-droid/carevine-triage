@@ -129,7 +129,7 @@ export function expectedSchema(ticketTableId: string): Record<string, Field[]> {
       text("session_id"),
     ],
     "Test Runs": [
-      text("id"),
+      { name: "id", type: "autoNumber" },
       date("run_at"),
       number("passed"),
       number("failed"),
@@ -141,11 +141,30 @@ export type SchemaReport = {
   connected: boolean;
   created: string[];
   missing: string[];
-  mismatches: string[];
+  differences: string[];
   errors: string[];
   ready: boolean;
   checked_at: number;
 };
+export function compatibleType(
+  table: string,
+  name: string,
+  expected: string,
+  actual: string,
+) {
+  if (expected === actual) return true;
+  if (table === "Test Runs" && name === "id")
+    return (
+      ["singleLineText", "autoNumber"].includes(expected) &&
+      ["singleLineText", "autoNumber"].includes(actual)
+    );
+  return (
+    (expected === "singleLineText" &&
+      ["singleSelect", "multilineText"].includes(actual)) ||
+    (actual === "singleLineText" &&
+      ["singleSelect", "multilineText"].includes(expected))
+  );
+}
 export async function ensureSchema(
   client: AirtableClient,
 ): Promise<SchemaReport> {
@@ -153,7 +172,7 @@ export async function ensureSchema(
     connected: false,
     created: [],
     missing: [],
-    mismatches: [],
+    differences: [],
     errors: [],
     ready: false,
     checked_at: Date.now(),
@@ -181,14 +200,14 @@ export async function ensureSchema(
       const existing = table.fields.find((f) => f.name === field.name);
       if (existing) {
         if (existing.type !== field.type)
-          report.mismatches.push(
-            `${name}.${field.name}: expected ${field.type}, found ${existing.type}`,
+          report.differences.push(
+            `${name}.${field.name}: ${existing.type} (reference: ${field.type}; ${compatibleType(name, field.name, field.type, existing.type) ? "compatible" : "information only"})`,
           );
         else if (
           field.type === "multipleRecordLinks" &&
           existing.options?.linkedTableId !== tickets?.id
         )
-          report.mismatches.push(`${name}.${field.name}: must link to Tickets`);
+          report.errors.push(`${name}.${field.name}: must link to Tickets`);
         continue;
       }
       if (field.type === "multipleRecordLinks" && !tickets) {
@@ -215,9 +234,6 @@ export async function ensureSchema(
       }
     }
   }
-  report.ready =
-    !report.missing.length &&
-    !report.mismatches.length &&
-    !report.errors.length;
+  report.ready = !report.missing.length && !report.errors.length;
   return report;
 }
