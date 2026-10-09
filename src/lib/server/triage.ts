@@ -47,10 +47,7 @@ export function safeResult(
   const crisis = crisisMatches(message);
   if (crisis.length) {
     ai.crisis = true;
-    ai.flagged_phrases = crisis.slice(0, 3).map((phrase) => {
-      const index = message.toLowerCase().replaceAll("’", "'").indexOf(phrase);
-      return message.slice(index, index + phrase.length);
-    });
+    ai.flagged_phrases = [...new Set([...ai.flagged_phrases, ...crisis])];
     safety_override = true;
   }
   if (ai.crisis) {

@@ -35,6 +35,23 @@ export function createDemo(seeds: SeedTicket[], now = 0): DemoState {
     decisions: [],
   };
 }
+// Browser-only timing transform: never write the visitor clock to Airtable.
+export function withVisitorClock(
+  tickets: Ticket[],
+  sessionStart: number,
+): Ticket[] {
+  return structuredClone(tickets).map((ticket) => {
+    const received_at = sessionStart - ticket.demo_wait_min * 60000;
+    return {
+      ...ticket,
+      received_at,
+      // Baseline urgent transfers follow the demo arrival time. Preserve any
+      // later human transfer timestamp when restoring a visitor's sandbox.
+      moved_at:
+        ticket.moved_at === ticket.received_at ? received_at : ticket.moved_at,
+    };
+  });
+}
 export function supportSort(a: Ticket, b: Ticket) {
   return (
     Number(b.ai.crisis) - Number(a.ai.crisis) ||

@@ -43,22 +43,44 @@ export function redact(message: string, firstName?: string) {
   return { text, removed: [...removed] };
 }
 
-export const crisisWords = [
-  "hurt myself",
-  "kill myself",
-  "suicide",
-  "end my life",
-  "don't see the point",
-  "chest pain",
-  "can't breathe",
-  "trouble breathing",
-  "stroke",
-  "fainted",
-  "seizure",
+// Word boundaries avoid matching unrelated substrings; flexible whitespace and
+// apostrophes cover the forms members actually type. Return the original text
+// so the same matches can be highlighted without reconstructing a phrase.
+const crisisPatterns = [
+  /\bhurt(?:ing)?\s+myself\b/gi,
+  /\bkill(?:ing)?\s+myself\b/gi,
+  /\bharm(?:ing)?\s+myself\b/gi,
+  /\bself[\s\-‐‑–]+harm(?:ing)?\b/gi,
+  /\bsuicid(?:e|al)\b/gi,
+  /\bend\s+my\s+life\b/gi,
+  /\bwant\s+to\s+die\b/gi,
+  /\b(?:don['’]t|do\s+not)\s+want\s+to\s+live\b/gi,
+  /\b(?:don['’]t|do\s+not)\s+see\s+the\s+point\b/gi,
+  /\bchest\s+pain\b/gi,
+  /\b(?:can['’]t|cannot|can\s+not)\s+breathe\b/gi,
+  /\btrouble\s+breathing\b/gi,
+  /\bstroke\b/gi,
+  /\bfaint(?:ed|ing)\b/gi,
+  /\bseizures?\b/gi,
 ];
 export function crisisMatches(message: string) {
-  const normalized = message.toLowerCase().replaceAll("’", "'");
-  return crisisWords.filter((phrase) => normalized.includes(phrase));
+  const matches = crisisPatterns
+    .flatMap((pattern) =>
+      [...message.matchAll(pattern)].map((match) => ({
+        text: match[0],
+        at: match.index,
+      })),
+    )
+    .sort((a, b) => a.at - b.at);
+  const seen = new Set<string>();
+  return matches
+    .filter(({ text }) => {
+      const key = text.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map(({ text }) => text);
 }
 
 export function hasPersonalDetails(text: string) {

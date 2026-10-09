@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { aiSchema, aiJSONSchema } from "../src/lib/ai-schema";
-import { redact, hasPersonalDetails, crisisWords } from "../src/lib/redact";
+import { redact, hasPersonalDetails, crisisMatches } from "../src/lib/redact";
 import { callLLM, modelSettings, defaultTriageModel } from "../src/lib/llm";
 import {
   safeResult,
@@ -91,12 +91,25 @@ test("redacts all personal-detail types without removing readings; repeat redact
   assert.equal(redact(r.text, "Daniel").text, r.text);
 });
 test("every crisis phrase forces urgent nurse routing even after invalid JSON or support classification", () => {
-  for (const phrase of crisisWords) {
+  for (const phrase of [
+    "hurt myself",
+    "kill myself",
+    "suicide",
+    "end my life",
+    "don't see the point",
+    "chest pain",
+    "can't breathe",
+    "trouble breathing",
+    "stroke",
+    "fainted",
+    "seizure",
+  ]) {
     const safe = safeResult(
       baseAI(),
       phrase.toUpperCase().replaceAll("'", "’"),
       "Daniel",
     );
+    assert.ok(crisisMatches(phrase).length);
     assert.equal(safe.ai.crisis, true);
     assert.equal(safe.ai.route, "Nurse - urgent");
     assert.equal(safe.ai.priority, "urgent");

@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { loadData, parseCSV, parseArticles } from "../src/lib/load-data";
 import {
   createDemo,
+  withVisitorClock,
+  waiting,
   checkResult,
   supportSort,
   nurseSort,
@@ -84,4 +86,57 @@ test("visitor IDs remain random UUIDs on HTTP previews without randomUUID", asyn
     /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
   );
   assert.notEqual(first, randomSessionId(source));
+});
+
+test("visitor clock replaces seed-based waits, counts up and restarts without mutating the snapshot", () => {
+  const seedTime = 1700000000000;
+  const sessionStart = seedTime + 4 * 60 * 60000;
+  const snapshot = createDemo(tickets, seedTime);
+  const original = structuredClone(snapshot);
+  const visitor = withVisitorClock(snapshot.tickets, sessionStart);
+  const crisis = visitor.find((t) => t.ticket_id === "T-01")!;
+  assert.equal(crisis.received_at, sessionStart - 2 * 60000);
+  assert.equal(waiting(crisis, sessionStart), "2 min");
+  assert.equal(waiting(crisis, sessionStart + 3 * 60000), "5 min");
+  assert.equal(crisis.moved_at, crisis.received_at);
+  for (const t of visitor)
+    assert.equal(
+      waiting(t, sessionStart),
+      waiting(
+        original.tickets.find((s) => s.ticket_id === t.ticket_id)!,
+        seedTime,
+      ),
+    );
+  const resetTime = sessionStart + 10 * 60000;
+  const reset = withVisitorClock(snapshot.tickets, resetTime).find(
+    (t) => t.ticket_id === "T-01",
+  )!;
+  assert.equal(waiting(reset, resetTime), "2 min");
+  assert.equal(reset.received_at, resetTime - 2 * 60000);
+  assert.deepEqual(snapshot, original);
+});
+
+test("restoring a visitor clock preserves their actions and human transfer timestamps", () => {
+  const sessionStart = 1700000000000;
+  const state = createDemo(tickets, sessionStart - 4 * 60 * 60000);
+  const ticket = state.tickets[0];
+  ticket.queue = "Nurse";
+  ticket.status = "Claimed";
+  ticket.claimed_by = "Maya Brooks, RN";
+  ticket.moved_at = sessionStart + 60000;
+  ticket.feedback = "Yes";
+  const restored = withVisitorClock(state.tickets, sessionStart);
+  assert.equal(
+    restored[0].received_at,
+    sessionStart - ticket.demo_wait_min * 60000,
+  );
+  for (const key of [
+    "queue",
+    "status",
+    "claimed_by",
+    "moved_at",
+    "feedback",
+  ] as const)
+    assert.equal(restored[0][key], ticket[key]);
+  assert.deepEqual(withVisitorClock(restored, sessionStart), restored);
 });

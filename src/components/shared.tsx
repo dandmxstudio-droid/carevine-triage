@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +12,8 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useDemo } from "./demo-provider";
+import { highlightParts } from "@/lib/message-highlights";
+import { crisisMatches } from "@/lib/redact";
 import { waiting } from "@/lib/demo";
 import type { Ticket } from "@/lib/types";
 export function Logo({ large = false }: { large?: boolean }) {
@@ -112,12 +114,8 @@ export function MessageText({
   text: string;
   phrases?: string[];
 }) {
-  const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   const parts = text.split(
-    new RegExp(
-      `(\\[(?:DOB|DATE_OF_BIRTH|MEMBER ID|PHONE|EMAIL|ADDRESS)\\]${escaped.length ? "|" + escaped.join("|") : ""})`,
-      "gi",
-    ),
+    /(\[(?:DOB|DATE_OF_BIRTH|MEMBER ID|PHONE|EMAIL|ADDRESS)\])/gi,
   );
   return (
     <>
@@ -127,10 +125,16 @@ export function MessageText({
             <EyeOff size={14} />
             {hiddenNames[part.slice(1, -1).toUpperCase()]}
           </span>
-        ) : phrases.some((p) => p.toLowerCase() === part.toLowerCase()) ? (
-          <mark key={i}>{part}</mark>
         ) : (
-          part
+          <Fragment key={i}>
+            {highlightParts(part, phrases).map((segment, j) =>
+              segment.highlighted ? (
+                <mark key={j}>{segment.text}</mark>
+              ) : (
+                segment.text
+              ),
+            )}
+          </Fragment>
         ),
       )}
     </>
@@ -145,7 +149,9 @@ export function Message({
 }) {
   const { now } = useDemo();
   const text = ticket.message.replaceAll("[NAME]", ticket.member_first_name);
-  const phrases = nurse ? ticket.ai.flagged_phrases : [];
+  const phrases = nurse
+    ? [...new Set([...ticket.ai.flagged_phrases, ...crisisMatches(text)])]
+    : [];
   const dob = /\[(DOB|DATE_OF_BIRTH)\]/.test(text);
   const id = text.includes("[MEMBER ID]");
   const otherPersonalDetails = /\[(PHONE|EMAIL|ADDRESS)\]/.test(text);

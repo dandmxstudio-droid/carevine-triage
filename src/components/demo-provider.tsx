@@ -1,4 +1,5 @@
 "use client";
+import { withVisitorClock } from "@/lib/demo";
 import { randomSessionId } from "@/lib/session";
 import {
   createContext,
@@ -34,7 +35,8 @@ type Context = {
 };
 const DemoContext = createContext<Context | null>(null);
 const key = "carevine-phase2-v1",
-  sessionKey = "carevine-session-id";
+  sessionKey = "carevine-session-id",
+  clockKey = "carevine-session-start";
 function persist(state: DemoState) {
   try {
     sessionStorage.setItem(key, JSON.stringify(state));
@@ -115,10 +117,16 @@ export function DemoProvider({
     const n = Date.now();
     setNow(n);
     sessionId.current = randomSessionId();
+    let sessionStart = n;
+    let restored = initial();
     try {
       sessionId.current =
         sessionStorage.getItem(sessionKey) || sessionId.current;
       sessionStorage.setItem(sessionKey, sessionId.current);
+      const clock = Number(sessionStorage.getItem(clockKey));
+      if (Number.isFinite(clock) && clock > 0 && clock <= n)
+        sessionStart = clock;
+      sessionStorage.setItem(clockKey, String(sessionStart));
       const stored = JSON.parse(sessionStorage.getItem(key) || "null");
       if (
         stored?.tickets?.length === seeds.length &&
@@ -130,12 +138,19 @@ export function DemoProvider({
             typeof t.received_at === "number",
         )
       ) {
-        stateRef.current = stored;
-        setState(stored);
+        restored = stored;
       }
     } catch {
       /* Storage is optional. */
     }
+    // Also migrate existing sandboxes that still contain seed-based waits.
+    const next = {
+      ...restored,
+      tickets: withVisitorClock(restored.tickets, sessionStart),
+    };
+    stateRef.current = next;
+    persist(next);
+    setState(next);
     setReady(true);
     const interval = setInterval(() => setNow(Date.now()), 15000); // Local clock only; no data polling.
     const onHide = () => flush();
@@ -198,16 +213,14 @@ export function DemoProvider({
   function reset() {
     const n = Date.now();
     const next: DemoState = {
-      tickets: structuredClone(snapshot.tickets).map((t) => ({
-        ...t,
-        received_at: n - t.demo_wait_min * 60000,
-        moved_at:
-          t.queue === "Nurse" && t.ai.priority === "urgent"
-            ? n - t.demo_wait_min * 60000
-            : null,
-      })),
+      tickets: withVisitorClock(snapshot.tickets, n),
       decisions: [],
     };
+    try {
+      sessionStorage.setItem(clockKey, String(n));
+    } catch {
+      /* The mounted visitor clock still restarts when storage is unavailable. */
+    }
     stateRef.current = next;
     persist(next);
     setState(next);
