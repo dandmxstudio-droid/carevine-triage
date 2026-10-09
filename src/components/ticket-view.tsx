@@ -71,6 +71,9 @@ export function TicketView({ id }: { id: string }) {
             ? "Help center gap flagged."
             : "Help center gap rejected."
           : undefined,
+        ...(gap && ai.kb_gap
+          ? { gap: { article_ids: ai.article_ids, text: ai.kb_gap } }
+          : {}),
       },
     );
     toast();
@@ -78,6 +81,7 @@ export function TicketView({ id }: { id: string }) {
   function feedback(value: "Yes" | "No") {
     update(id, { feedback: value }, "draft_feedback", "Support rep", {
       note: value,
+      draft_useful: value,
     });
     toast("Draft feedback recorded.");
   }

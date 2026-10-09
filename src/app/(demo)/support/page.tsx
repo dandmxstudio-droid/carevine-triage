@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { EyeOff, Inbox, TriangleAlert } from "lucide-react";
 import { useDemo } from "@/components/demo-provider";
-import { Header, Footer } from "@/components/shared";
+import { Header, Footer, MessageText, Updated } from "@/components/shared";
 import { supportSort, title, waiting } from "@/lib/demo";
 import type { Ticket } from "@/lib/types";
 const filters = [
@@ -46,7 +46,7 @@ export default function Support() {
               to the nurse queue.
             </p>
           </div>
-          <span className="muted small">Updated just now</span>
+          <Updated />
         </div>
         {recent > 0 && (
           <div className="banner moved">
@@ -107,7 +107,11 @@ export default function Support() {
                     ) : (
                       <>
                         <span className="truncate">
-                          {t.message.replace(/^Hi, this is \[NAME\]\. /, "")}
+                          <MessageText
+                            text={t.message
+                              .replace(/^Hi, this is \[NAME\]\. /, "")
+                              .replaceAll("[NAME]", t.member_first_name)}
+                          />
                         </span>
                         {t.ai.member_mood === "upset" && (
                           <span className="badge tag">Upset member</span>

@@ -91,6 +91,51 @@ const hiddenNames: Record<string, string> = {
   EMAIL: "Email hidden",
   ADDRESS: "Address hidden",
 };
+export function Updated() {
+  const { loadedAt, now } = useDemo();
+  return (
+    <span className="muted small">
+      Updated{" "}
+      {now
+        ? new Date(loadedAt).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "—"}
+    </span>
+  );
+}
+export function MessageText({
+  text,
+  phrases = [],
+}: {
+  text: string;
+  phrases?: string[];
+}) {
+  const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const parts = text.split(
+    new RegExp(
+      `(\\[(?:DOB|DATE_OF_BIRTH|MEMBER ID|PHONE|EMAIL|ADDRESS)\\]${escaped.length ? "|" + escaped.join("|") : ""})`,
+      "gi",
+    ),
+  );
+  return (
+    <>
+      {parts.map((part, i) =>
+        hiddenNames[part.slice(1, -1).toUpperCase()] ? (
+          <span className="hidden-tag" key={i}>
+            <EyeOff size={14} />
+            {hiddenNames[part.slice(1, -1).toUpperCase()]}
+          </span>
+        ) : phrases.some((p) => p.toLowerCase() === part.toLowerCase()) ? (
+          <mark key={i}>{part}</mark>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
 export function Message({
   ticket,
   nurse = false,
@@ -101,13 +146,6 @@ export function Message({
   const { now } = useDemo();
   const text = ticket.message.replaceAll("[NAME]", ticket.member_first_name);
   const phrases = nurse ? ticket.ai.flagged_phrases : [];
-  const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const parts = text.split(
-    new RegExp(
-      `(\\[(?:DOB|DATE_OF_BIRTH|MEMBER ID|PHONE|EMAIL|ADDRESS)\\]${escaped.length ? "|" + escaped.join("|") : ""})`,
-      "gi",
-    ),
-  );
   const dob = /\[(DOB|DATE_OF_BIRTH)\]/.test(text);
   const id = text.includes("[MEMBER ID]");
   return (
@@ -125,19 +163,7 @@ export function Message({
         </span>
       </div>
       <p className="message-text">
-        {parts.map((p, i) => {
-          const key = p.slice(1, -1);
-          return hiddenNames[key] ? (
-            <span className="hidden-tag" key={i}>
-              <EyeOff size={14} />
-              {hiddenNames[key]}
-            </span>
-          ) : phrases.some((v) => v.toLowerCase() === p.toLowerCase()) ? (
-            <mark key={i}>{p}</mark>
-          ) : (
-            p
-          );
-        })}
+        <MessageText text={text} phrases={phrases} />
       </p>
       {(dob || id) && (
         <p className="privacy-note">

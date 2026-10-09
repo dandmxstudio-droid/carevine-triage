@@ -61,13 +61,27 @@ test("reset isolates mutable results, restores queues, and adds only greeting na
   for (const t of reset.tickets.filter((t) => t.queue === "Nurse"))
     assert.equal(t.ai.draft_reply, null);
 });
-test("nurse queue prioritizes crisis; support hides nurse rows last", () => {
+test("crisis always leads both queues; other nurse support rows stay last", () => {
   const { tickets: demo } = createDemo(tickets);
   assert.equal(
     demo.filter((t) => t.queue === "Nurse").sort(nurseSort)[0].ticket_id,
     "T-01",
   );
   const support = demo.sort(supportSort);
-  assert.ok(support.slice(0, 11).every((t) => t.queue === "Support"));
-  assert.ok(support.slice(11).every((t) => t.queue === "Nurse"));
+  assert.equal(support[0].ticket_id, "T-01");
+  assert.ok(support.slice(1, 12).every((t) => t.queue === "Support"));
+  assert.ok(support.slice(12).every((t) => t.queue === "Nurse"));
+});
+
+test("visitor IDs remain random UUIDs on HTTP previews without randomUUID", async () => {
+  const { randomSessionId } = await import("../src/lib/session");
+  const source = {
+    getRandomValues: crypto.getRandomValues.bind(crypto),
+  } as Pick<Crypto, "getRandomValues">;
+  const first = randomSessionId(source);
+  assert.match(
+    first,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
+  assert.notEqual(first, randomSessionId(source));
 });

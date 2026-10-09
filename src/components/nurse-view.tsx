@@ -10,7 +10,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useDemo } from "./demo-provider";
-import { Header, Footer, Message, CategoryForm, Modal } from "./shared";
+import {
+  Header,
+  Footer,
+  Message,
+  CategoryForm,
+  Modal,
+  Updated,
+} from "./shared";
 import { nurseSort, nurseLabel, title, waiting } from "@/lib/demo";
 import { crisisTemplate } from "@/lib/mock-results";
 import type { AIResult, Ticket } from "@/lib/types";
@@ -24,7 +31,28 @@ export function NurseView() {
   const requested = params.get("ticket");
   const selected = rows.find((t) => t.ticket_id === requested) || rows[0];
   const crisis = rows.find((t) => t.ai.crisis);
-  const [dialog, setDialog] = useState<"return" | "reply" | null>(null);
+  const [dialog, setDialog] = useState<"return" | "reply" | "crisis" | null>(
+    null,
+  );
+  const lastAction = (id: string | undefined, action: string) =>
+    state.decisions
+      .filter((d) => d.ticket_id === id && d.action === action)
+      .at(-1);
+  const crisisReply = lastAction(crisis?.ticket_id, "crisis_reply_sent");
+  const call = lastAction(selected?.ticket_id, "call_logged");
+  const nurseReply = state.decisions
+    .filter(
+      (d) =>
+        d.ticket_id === selected?.ticket_id &&
+        d.action === "reply_sent" &&
+        d.role === "Nurse",
+    )
+    .at(-1);
+  const time = (at: number) =>
+    new Date(at).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   const [reply, setReply] = useState("");
   const [returned, setReturned] = useState<{
     ticket: Ticket;
@@ -106,6 +134,12 @@ export function NurseView() {
             <span className="mono">{crisis.ticket_id}</span> · arrived{" "}
             {waiting(crisis, now)} ago ·{" "}
             {crisis.claimed_by ? "claimed by you." : "unclaimed."}
+            {crisisReply && (
+              <span className="nurse-action-status">
+                Crisis reply sent at {time(crisisReply.at)} by{" "}
+                {crisisReply.person}.
+              </span>
+            )}
           </strong>
           {crisis.claimed_by ? (
             <span className="button">
@@ -126,6 +160,7 @@ export function NurseView() {
             Messages the Triage Tool flagged as health-related. No replies are
             drafted here; nurses respond directly.
           </p>
+          <Updated />
         </div>
         <div className="nurse-layout">
           <section
@@ -290,16 +325,10 @@ export function NurseView() {
                   {selected.ai.crisis && (
                     <button
                       className="button danger"
-                      onClick={() => {
-                        update(
-                          selected.ticket_id,
-                          {},
-                          "crisis_reply_sent",
-                          "Nurse",
-                          { final_reply: crisisTemplate },
-                        );
-                        toast();
-                      }}
+                      disabled={
+                        !!lastAction(selected.ticket_id, "crisis_reply_sent")
+                      }
+                      onClick={() => setDialog("crisis")}
                     >
                       Send crisis reply
                     </button>
@@ -308,7 +337,7 @@ export function NurseView() {
                     className="button"
                     onClick={() => {
                       update(selected.ticket_id, {}, "call_logged", "Nurse");
-                      toast("Demo: call logged.");
+                      toast();
                     }}
                   >
                     <Phone size={18} />
@@ -335,6 +364,24 @@ export function NurseView() {
                     </button>
                   )}
                 </div>
+                {(call || nurseReply) && (
+                  <div
+                    className="stack tight nurse-action-status"
+                    role="status"
+                  >
+                    {call && (
+                      <p>
+                        Call logged at {time(call.at)} by {call.person}.
+                      </p>
+                    )}
+                    {nurseReply && (
+                      <p>
+                        Reply sent at {time(nurseReply.at)} by{" "}
+                        {nurseReply.person}.
+                      </p>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <section className="card empty">
@@ -347,6 +394,33 @@ export function NurseView() {
         </div>
       </main>
       <Footer />
+      {dialog === "crisis" && selected && (
+        <Modal
+          title={<>Send this crisis reply to {selected.member_first_name}?</>}
+          onClose={() => setDialog(null)}
+        >
+          <div className="stack">
+            <p className="sent-reply">{crisisTemplate}</p>
+            <div className="actions end">
+              <button className="button" onClick={() => setDialog(null)}>
+                Cancel
+              </button>
+              <button
+                className="button danger-solid"
+                onClick={() => {
+                  update(selected.ticket_id, {}, "crisis_reply_sent", "Nurse", {
+                    final_reply: crisisTemplate,
+                  });
+                  setDialog(null);
+                  toast();
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {dialog === "return" && selected && (
         <CategoryForm
           ticket={selected}

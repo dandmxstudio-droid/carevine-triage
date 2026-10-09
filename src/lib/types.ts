@@ -55,5 +55,12 @@ export type Decision = {
   final_reply?: string;
   from_value?: string;
   to_value?: string;
+  draft_useful?: "Yes" | "No";
+  gap?: { article_ids: string[]; text: string };
 };
 export type DemoState = { tickets: Ticket[]; decisions: Decision[] };
+export type DemoSnapshot = {
+  tickets: Ticket[];
+  loaded_at: number;
+  offline: boolean;
+};

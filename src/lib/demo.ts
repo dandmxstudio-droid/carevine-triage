@@ -35,8 +35,10 @@ export function createDemo(seeds: SeedTicket[], now = 0): DemoState {
 }
 export function supportSort(a: Ticket, b: Ticket) {
   return (
+    Number(b.ai.crisis) - Number(a.ai.crisis) ||
     Number(a.queue === "Nurse") - Number(b.queue === "Nurse") ||
     priorityOrder[a.ai.priority] - priorityOrder[b.ai.priority] ||
+    a.received_at - b.received_at ||
     b.demo_wait_min - a.demo_wait_min
   );
 }
@@ -44,6 +46,7 @@ export function nurseSort(a: Ticket, b: Ticket) {
   return (
     Number(b.ai.crisis) - Number(a.ai.crisis) ||
     priorityOrder[a.ai.priority] - priorityOrder[b.ai.priority] ||
+    a.received_at - b.received_at ||
     b.demo_wait_min - a.demo_wait_min
   );
 }
