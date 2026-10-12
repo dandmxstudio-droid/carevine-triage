@@ -294,3 +294,20 @@ export function useDemo() {
   if (!value) throw new Error("DemoProvider is required");
   return value;
 }
+export function useResetDemo() {
+  const demo = useContext(DemoContext);
+  return () => {
+    if (demo) {
+      demo.reset();
+      return;
+    }
+    // Admin screens share the header but have no mounted demo provider.
+    // Keep the visitor ID, logging limits and admin test results intact.
+    try {
+      sessionStorage.removeItem(key);
+      sessionStorage.removeItem(clockKey);
+    } catch {
+      /* Returning to the demo still works when storage is unavailable. */
+    }
+  };
+}

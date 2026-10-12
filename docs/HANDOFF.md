@@ -48,6 +48,8 @@ A web app where:
 
 The top nav shows "Support queue · Nurse queue" and the current person's name. Switching views is allowed (it's a demo).
 
+Clicking the Carevine header logo resets the visitor's demo and returns to the landing page (`/`). It restores the loaded baseline tickets, clears local action/status history and restarts the wait clock, using the same reset as the footer. The visitor UUID, Slack/logging allowances and existing Airtable logs stay intact. The shared header also works on `/admin/tests`: it clears the stored public sandbox and clock before returning home, without clearing admin test results or signing out.
+
 ---
 
 ## 4. Airtable base: "Carevine Helpdesk"

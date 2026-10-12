@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useDemo } from "./demo-provider";
+import { useDemo, useResetDemo } from "./demo-provider";
 import { highlightParts } from "@/lib/message-highlights";
 import { crisisMatches } from "@/lib/redact";
 import { waiting } from "@/lib/demo";
@@ -39,13 +39,15 @@ export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   );
 }
 export function Header({ nurse = false }: { nurse?: boolean }) {
+  const resetDemo = useResetDemo();
   const name = nurse ? "Maya Brooks, RN" : "Julia Lee";
   return (
     <header className="app-header">
       <Link
-        href="/support"
+        href="/"
         className="brand-link"
-        aria-label="Carevine Triage Tool, go to support queue"
+        aria-label="Carevine Triage Tool, reset demo and return to landing page"
+        onClick={resetDemo}
       >
         <Logo />
         <span className="divider" />
