@@ -3,7 +3,11 @@ import { airtable } from "@/lib/server/airtable";
 import { getSnapshot } from "@/lib/server/snapshot";
 import { logDecisions, parseBatch } from "@/lib/server/decisions";
 import { sendVisitorAlerts } from "@/lib/server/slack";
-import { sessionWriteGate, withinWriteQuota } from "@/lib/server/public-limits";
+import {
+  publicWriteGate,
+  sessionWriteGate,
+  withinWriteQuota,
+} from "@/lib/server/public-limits";
 import { loadData } from "@/lib/load-data";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
@@ -39,6 +43,7 @@ export async function POST(request: Request) {
       },
       { status: 429, headers: { "Retry-After": "60" } },
     );
+  if (!publicWriteGate.begin()) return limited();
   const release = sessionWriteGate.begin(batch.session_id);
   if (!release) return limited();
   try {

@@ -6,8 +6,25 @@ export const publicWriteLimits = {
   decisions: 100,
   gaps: 10,
   requests: 30,
+  totalRequests: 100,
   windowMs: 60000,
 };
+// Shared across session IDs so rotating a client-supplied UUID cannot evade
+// this server instance's burst cap. This is not a distributed traffic budget.
+export class PublicWriteGate {
+  private started = 0;
+  private requests = 0;
+  begin(now = Date.now()): boolean {
+    if (now - this.started >= publicWriteLimits.windowMs) {
+      this.started = now;
+      this.requests = 0;
+    }
+    if (this.requests >= publicWriteLimits.totalRequests) return false;
+    this.requests++;
+    return true;
+  }
+}
+export const publicWriteGate = new PublicWriteGate();
 // Cheap burst/concurrency protection before Airtable. Durable per-tab totals
 // below survive worker restarts; this burst counter is per server instance.
 export class SessionWriteGate {

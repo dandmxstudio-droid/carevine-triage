@@ -2,12 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   SessionWriteGate,
+  PublicWriteGate,
   withinWriteQuota,
   publicWriteLimits,
 } from "../src/lib/server/public-limits";
 import { AirtableClient } from "../src/lib/server/airtable-core";
 import type { LogBatch } from "../src/lib/server/decisions";
 const session = "11111111-1111-4111-8111-111111111111";
+test("shared public burst cap remains exhausted when callers rotate session IDs", () => {
+  const shared = new PublicWriteGate();
+  const sessions = new SessionWriteGate();
+  for (let i = 0; i < publicWriteLimits.totalRequests; i++) {
+    assert.equal(shared.begin(100), true);
+    const release = sessions.begin(`visitor-${i}`, 100)!;
+    assert.ok(release);
+    release();
+  }
+  assert.equal(shared.begin(59999), false);
+  assert.ok(sessions.begin("fresh-visitor", 59999));
+  assert.equal(shared.begin(59999), false);
+  assert.equal(shared.begin(60000), true);
+});
 const batch: LogBatch = {
   session_id: session,
   events: [

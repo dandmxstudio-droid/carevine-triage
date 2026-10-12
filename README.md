@@ -27,7 +27,7 @@ The test set contains 16 synthetic tickets covering routine drafts, help center 
 
 Run 1 exposed two prompt issues: unsynced readings were treated as clinical without a value or symptoms, and matching articles were not consistently compared for conflicts. Both instructions were corrected before run 2.
 
-The 76 unit tests cover redaction, output validation, crisis patterns, draft suppression, admin authentication, Airtable logging, Slack alerts and session limits. The recorded model runs are separate from these unit tests.
+The 83 unit tests cover redaction, output validation, crisis patterns, draft suppression, admin authentication, Airtable logging, Slack alerts and session limits. The recorded model runs are separate from these unit tests.
 
 ## Stack
 
