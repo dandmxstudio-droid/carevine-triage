@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check,
   Phone,
@@ -22,7 +22,7 @@ import { nurseSort, nurseLabel, title, waiting } from "@/lib/demo";
 import { crisisTemplate } from "@/lib/mock-results";
 import type { AIResult, Ticket } from "@/lib/types";
 export function NurseView() {
-  const { state, now, update, toast } = useDemo();
+  const { state, now, update, toast, resetVersion } = useDemo();
   const params = useSearchParams();
   const router = useRouter();
   const rows = state.tickets
@@ -34,35 +34,56 @@ export function NurseView() {
   const selected =
     state.tickets.find((t) => t.ticket_id === requested) || rows[0];
   const crisis = rows.find((t) => t.ai.crisis);
-  const [dialog, setDialog] = useState<"return" | "reply" | "crisis" | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<"return" | "crisis" | null>(null);
   const lastAction = (id: string | undefined, action: string) =>
     state.decisions
       .filter((d) => d.ticket_id === id && d.action === action)
       .at(-1);
   const crisisReply = lastAction(crisis?.ticket_id, "crisis_reply_sent");
   const call = lastAction(selected?.ticket_id, "call_logged");
-  const nurseReply = state.decisions
-    .filter(
-      (d) =>
-        d.ticket_id === selected?.ticket_id &&
-        d.action === "reply_sent" &&
-        d.role === "Nurse",
-    )
-    .at(-1);
+  const nurseReplies = state.decisions.filter(
+    (d) =>
+      d.ticket_id === selected?.ticket_id &&
+      d.action === "reply_sent" &&
+      d.role === "Nurse",
+  );
+  const selectedCrisisReply = lastAction(
+    selected?.ticket_id,
+    "crisis_reply_sent",
+  );
+  const canReply = !selected?.ai.crisis || !!selectedCrisisReply;
   const time = (at: number) =>
     new Date(at).toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
     });
-  const [reply, setReply] = useState("");
+  const [editor, setEditor] = useState<{
+    ticket_id: string;
+    resetVersion: number;
+    text: string;
+  } | null>(null);
+  const writingReply =
+    editor?.ticket_id === selected?.ticket_id &&
+    editor?.resetVersion === resetVersion &&
+    canReply;
+  const replyButton = useRef<HTMLButtonElement>(null);
   const [returned, setReturned] = useState<{
     ticket: Ticket;
     to: string;
     deadline: number;
   } | null>(null);
   const [undoAvailable, setUndoAvailable] = useState(false);
+  useEffect(() => {
+    setEditor(null);
+    setDialog(null);
+  }, [selected?.ticket_id, resetVersion]);
+  useEffect(() => {
+    setReturned(null);
+  }, [resetVersion]);
+  function closeReply() {
+    setEditor(null);
+    replyButton.current?.focus();
+  }
   useEffect(() => {
     if (!returned) return;
     setUndoAvailable(true);
@@ -290,15 +311,85 @@ export function NurseView() {
                   )}
                 </div>
                 <Message ticket={selected} nurse />
+                {nurseReplies.map((reply, index) => (
+                  <section
+                    className="card stack nurse-reply-sent"
+                    role="status"
+                    key={`${reply.at}-${index}`}
+                  >
+                    <strong>
+                      Reply sent to {selected.member_first_name} at{" "}
+                      {time(reply.at)} by {reply.person}
+                    </strong>
+                    <p className="sent-reply">{reply.final_reply}</p>
+                  </section>
+                ))}
+                {writingReply && (
+                  <section className="card" aria-label="Write a nurse reply">
+                    <form
+                      className="stack"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const text = editor?.text.trim();
+                        if (!text || !canReply) return;
+                        ensureClaim(selected);
+                        update(selected.ticket_id, {}, "reply_sent", "Nurse", {
+                          final_reply: text,
+                        });
+                        closeReply();
+                        toast();
+                      }}
+                    >
+                      <p id="nurse-reply-guidance">
+                        Nurses write their own replies. The Triage Tool never
+                        drafts health advice.
+                      </p>
+                      <div className="reply-field">
+                        <label htmlFor="nurse-reply">Your reply</label>
+                        <textarea
+                          id="nurse-reply"
+                          aria-describedby="nurse-reply-guidance"
+                          rows={7}
+                          maxLength={10000}
+                          required
+                          autoFocus
+                          value={editor?.text || ""}
+                          onChange={(event) =>
+                            setEditor((current) =>
+                              current
+                                ? { ...current, text: event.target.value }
+                                : null,
+                            )
+                          }
+                          placeholder={`Write your reply to ${selected.member_first_name}…`}
+                        />
+                      </div>
+                      <div className="actions">
+                        <button
+                          className="button primary"
+                          type="submit"
+                          disabled={!editor?.text.trim()}
+                        >
+                          Send reply
+                        </button>
+                        <button
+                          className="button"
+                          type="button"
+                          onClick={closeReply}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </section>
+                )}
                 <section
                   className="card ai-card nurse-reason"
                   aria-labelledby="nurse-why"
                 >
                   <div className="ai-label">
                     <span className="ai-eyebrow">Triage Tool handoff note</span>
-                    <span className="small">
-                      AI-generated. Review before sending.
-                    </span>
+                    <span className="small">AI-generated.</span>
                   </div>
                   <h3 id="nurse-why">Why the Triage Tool flagged it</h3>
                   <p data-field="reason">{selected.ai.reason}</p>
@@ -309,38 +400,41 @@ export function NurseView() {
                     aria-labelledby="crisis-template"
                   >
                     <div className="ai-label">
-                      <h3 id="crisis-template">Crisis reply template</h3>
+                      <h3 id="crisis-template">
+                        Step 1 · Crisis reply template
+                      </h3>
                       <span className="badge urgent tag">
                         Sent only when you choose
                       </span>
                     </div>
                     <p>{crisisTemplate}</p>
+                    <div className="actions">
+                      <button
+                        className="button danger"
+                        disabled={!!selectedCrisisReply}
+                        onClick={() => setDialog("crisis")}
+                      >
+                        Send crisis reply
+                      </button>
+                    </div>
                   </section>
                 )}
-                <div className="actions nurse-actions">
-                  {!selected.ai.crisis &&
-                    (selected.claimed_by ? (
-                      <span className="claimed-text">
-                        <Check size={18} />
-                        Claimed by you
-                      </span>
-                    ) : (
-                      <button
-                        className="button primary"
-                        onClick={() => claim(selected)}
-                      >
-                        I&apos;m on it
-                      </button>
-                    ))}
-                  {selected.ai.crisis && (
+                <div
+                  className="actions nurse-actions"
+                  role="group"
+                  aria-label="Nurse ticket actions"
+                >
+                  {selected.claimed_by ? (
+                    <span className="claimed-text">
+                      <Check size={18} />
+                      Claimed by you
+                    </span>
+                  ) : (
                     <button
-                      className="button danger"
-                      disabled={
-                        !!lastAction(selected.ticket_id, "crisis_reply_sent")
-                      }
-                      onClick={() => setDialog("crisis")}
+                      className="button primary"
+                      onClick={() => claim(selected)}
                     >
-                      Send crisis reply
+                      I&apos;m on it
                     </button>
                   )}
                   <button
@@ -354,43 +448,49 @@ export function NurseView() {
                     <Phone size={18} />
                     Call member
                   </button>
-                  {!selected.ai.crisis && (
-                    <button
-                      className="button"
-                      onClick={() => {
-                        setReply("");
-                        setDialog("reply");
-                      }}
-                    >
-                      <MessageSquare size={18} />
-                      Reply in app
-                    </button>
-                  )}
-                  {!selected.ai.crisis && selected.claimed_by && (
+                  <button
+                    ref={replyButton}
+                    className="button"
+                    disabled={!canReply}
+                    aria-describedby={
+                      !canReply ? "crisis-reply-hint" : undefined
+                    }
+                    onClick={() => {
+                      if (!canReply) return;
+                      setEditor({
+                        ticket_id: selected.ticket_id,
+                        resetVersion,
+                        text: "",
+                      });
+                    }}
+                  >
+                    <MessageSquare size={18} />
+                    Reply in app
+                  </button>
+                </div>
+                {!canReply && (
+                  <p id="crisis-reply-hint" className="muted small">
+                    Send the crisis reply first.
+                  </p>
+                )}
+                {!selected.ai.crisis && selected.claimed_by && (
+                  <div className="actions">
                     <button
                       className="text-button"
                       onClick={() => setDialog("return")}
                     >
                       Not clinical: send back to support
                     </button>
-                  )}
-                </div>
-                {(call || nurseReply) && (
+                  </div>
+                )}
+                {call && (
                   <div
                     className="stack tight nurse-action-status"
                     role="status"
                   >
-                    {call && (
-                      <p>
-                        Call logged at {time(call.at)} by {call.person}.
-                      </p>
-                    )}
-                    {nurseReply && (
-                      <p>
-                        Reply sent at {time(nurseReply.at)} by{" "}
-                        {nurseReply.person}.
-                      </p>
-                    )}
+                    <p>
+                      Call logged at {time(call.at)} by {call.person}.
+                    </p>
                   </div>
                 )}
               </>
@@ -441,53 +541,6 @@ export function NurseView() {
           onSubmit={sendBack}
         />
       )}{" "}
-      {dialog === "reply" && selected && (
-        <Modal
-          title={<>Reply to {selected.member_first_name}</>}
-          onClose={() => setDialog(null)}
-        >
-          <form
-            className="stack"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!reply.trim()) return;
-              update(selected.ticket_id, {}, "reply_sent", "Nurse", {
-                final_reply: reply.trim(),
-              });
-              setDialog(null);
-              toast();
-            }}
-          >
-            <label className="reply-field" htmlFor="nurse-reply">
-              Your reply
-              <textarea
-                id="nurse-reply"
-                rows={7}
-                required
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Write your reply"
-              />
-            </label>
-            <div className="actions end">
-              <button
-                type="button"
-                className="button"
-                onClick={() => setDialog(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="button primary"
-                disabled={!reply.trim()}
-              >
-                Send reply
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
   );
 }

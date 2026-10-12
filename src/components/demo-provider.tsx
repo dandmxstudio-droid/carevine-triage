@@ -23,6 +23,7 @@ type Context = {
   articles: Article[];
   now: number;
   loadedAt: number;
+  resetVersion: number;
   reset: () => void;
   update: (
     id: string,
@@ -63,6 +64,7 @@ export function DemoProvider({
   const stateRef = useRef(state);
   const [now, setNow] = useState(0);
   const [ready, setReady] = useState(false);
+  const [resetVersion, setResetVersion] = useState(0);
   const [limited, setLimited] = useState(false);
   const [offline, setOffline] = useState(snapshot.offline);
   const offlineRef = useRef(snapshot.offline);
@@ -250,6 +252,7 @@ export function DemoProvider({
     setState(next);
     setNow(n);
     toast("Demo reset. All 16 tickets are ready.");
+    setResetVersion((version) => version + 1);
   }
   return (
     <DemoContext.Provider
@@ -259,6 +262,7 @@ export function DemoProvider({
         articles,
         now,
         loadedAt: snapshot.loaded_at,
+        resetVersion,
         reset,
         update,
         toast,
